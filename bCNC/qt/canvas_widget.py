@@ -163,6 +163,7 @@ class CNCScene(QGraphicsScene):
         """
         self.clear()
         self._gantry_items = []
+        self._probe_items = []
         self._path_items = {}
 
         self._draw_grid()
@@ -391,7 +392,10 @@ class CNCScene(QGraphicsScene):
     def clear_probe_overlay(self):
         """Remove all probe overlay items from the scene."""
         for item in self._probe_items:
-            self.removeItem(item)
+            try:
+                self.removeItem(item)
+            except RuntimeError:
+                pass  # item already deleted by scene.clear()
         self._probe_items.clear()
 
     def draw_probe_overlay(self, probe):
