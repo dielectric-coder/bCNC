@@ -216,6 +216,19 @@ class EditorPanel(QWidget):
                             idx,
                             self._tree.selectionModel().SelectionFlag.Select)
 
+    def add_to_selection(self, block_ids):
+        """Add blocks to current selection (for ctrl-click from canvas)."""
+        sel = self._tree.selectionModel()
+        for bid in block_ids:
+            idx = self._proxy.mapFromSource(self._model.block_index(bid))
+            if idx.isValid():
+                sel.select(idx, sel.SelectionFlag.Select)
+        if block_ids:
+            last = self._proxy.mapFromSource(
+                self._model.block_index(block_ids[-1]))
+            if last.isValid():
+                self._tree.scrollTo(last)
+
     def select_blocks(self, block_ids):
         """Select specific blocks by id."""
         self._tree.clearSelection()

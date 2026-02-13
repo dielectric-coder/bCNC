@@ -61,6 +61,7 @@ class AppSignals(QObject):
     draw_probe = Signal()                  # <<DrawProbe>>
     draw_orient = Signal()                 # <<DrawOrient>>
     view_changed = Signal(int)             # view index
+    canvas_block_clicked = Signal(int, bool)  # (block_id, ctrl_held)
 
     # Selection
     selection_changed = Signal()           # <<ListboxSelect>>

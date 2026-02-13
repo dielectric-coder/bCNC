@@ -137,6 +137,12 @@ class MainWindow(QMainWindow):
         # Editor signals
         self.signals.file_loaded.connect(self.editor_panel.fill)
 
+        # Selection sync: editor → canvas, canvas → editor
+        self.signals.selection_changed.connect(
+            self._on_editor_selection_changed)
+        self.signals.canvas_block_clicked.connect(
+            self._on_canvas_block_clicked)
+
         # Probe / autolevel signals
         self.signals.draw_probe.connect(self._on_draw_probe)
         self.signals.serial_run_end.connect(self._on_run_end)
@@ -374,6 +380,18 @@ class MainWindow(QMainWindow):
         self.sender.gcode.redo()
         self.editor_panel.fill()
         self._on_draw()
+
+    def _on_editor_selection_changed(self):
+        """Editor selection changed → highlight on canvas."""
+        blocks = self.editor_panel.get_selected_blocks()
+        self.canvas_panel.highlight_selection(blocks)
+
+    def _on_canvas_block_clicked(self, bid, ctrl):
+        """Canvas path clicked → select in editor."""
+        if ctrl:
+            self.editor_panel.add_to_selection([bid])
+        else:
+            self.editor_panel.select_blocks([bid])
 
     def _on_draw(self):
         """Rebuild the canvas from current gcode."""

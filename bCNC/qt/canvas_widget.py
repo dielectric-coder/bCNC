@@ -52,6 +52,7 @@ class CNCGraphicsView(QGraphicsView):
     """
 
     coords_changed = Signal(float, float, float)
+    canvas_block_clicked = Signal(int, bool)  # (block_id, ctrl_held)
 
     def __init__(self, scene, parent=None):
         super().__init__(scene, parent)
@@ -83,6 +84,17 @@ class CNCGraphicsView(QGraphicsView):
             self._pan_start = event.position()
             self.setCursor(Qt.CursorShape.ClosedHandCursor)
             event.accept()
+        elif event.button() == Qt.MouseButton.LeftButton:
+            scene_pos = self.mapToScene(event.position().toPoint())
+            item = self.scene().itemAt(scene_pos, self.transform())
+            path_items = self.scene()._path_items
+            if item is not None and item in path_items:
+                bid, lid = path_items[item]
+                ctrl = bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier)
+                self.canvas_block_clicked.emit(bid, ctrl)
+                event.accept()
+            else:
+                super().mousePressEvent(event)
         else:
             super().mousePressEvent(event)
 
@@ -153,6 +165,7 @@ class CNCScene(QGraphicsScene):
 
         # Track path items for selection highlighting
         self._path_items = {}
+        self._selection_state = {}  # {item: original_pen} for rollback
 
     def rebuild(self, gcode, cnc):
         """Full redraw: clear scene and rebuild everything.
@@ -165,6 +178,7 @@ class CNCScene(QGraphicsScene):
         self._gantry_items = []
         self._probe_items = []
         self._path_items = {}
+        self._selection_state = {}
 
         self._draw_grid()
         self._draw_margin()
@@ -377,6 +391,28 @@ class CNCScene(QGraphicsScene):
                 block.addPath(id(item))
 
             block.endPath(cnc.x, cnc.y, cnc.z)
+
+    def highlight_selection(self, block_ids):
+        """Highlight paths belonging to the given block ids."""
+        self.clear_selection()
+        if not block_ids:
+            return
+        bid_set = set(block_ids)
+        highlight_pen = QPen(COLORS["select"])
+        highlight_pen.setWidthF(2)
+        for item, (bid, lid) in self._path_items.items():
+            if bid in bid_set:
+                self._selection_state[item] = item.pen()
+                item.setPen(highlight_pen)
+
+    def clear_selection(self):
+        """Restore original pens on previously highlighted items."""
+        for item, pen in self._selection_state.items():
+            try:
+                item.setPen(pen)
+            except RuntimeError:
+                pass  # item already deleted by scene.clear()
+        self._selection_state.clear()
 
     def _draw_polyline(self, xyz, color, width=1, dash=False):
         """Draw a polyline from 3D xyz coordinates."""
@@ -626,6 +662,10 @@ class CanvasPanel(QWidget):
         # Wire coordinate display
         self.view.coords_changed.connect(self._on_coords)
 
+        # Wire canvas click → central signal
+        self.view.canvas_block_clicked.connect(
+            self.signals.canvas_block_clicked.emit)
+
     def _on_view_changed(self, index):
         self.scene.view_mode = index
         self.signals.view_changed.emit(index)
@@ -648,6 +688,14 @@ class CanvasPanel(QWidget):
     def draw_probe(self, probe):
         """Draw probe overlay on the canvas."""
         self.scene.draw_probe_overlay(probe)
+
+    def highlight_selection(self, block_ids):
+        """Highlight paths for the given block ids on the canvas."""
+        self.scene.highlight_selection(block_ids)
+
+    def clear_selection(self):
+        """Clear selection highlighting on the canvas."""
+        self.scene.clear_selection()
 
     def _on_probe_toggled(self, checked):
         self.scene.draw_probe = checked
