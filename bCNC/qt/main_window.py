@@ -22,6 +22,7 @@ from .control_panel import ControlPanel
 from .terminal_panel import TerminalPanel
 from .serial_monitor import SerialMonitor
 from .autolevel_panel import AutolevelPanel
+from .editor_panel import EditorPanel
 
 
 FILETYPES_FILTER = (
@@ -94,6 +95,18 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea,
                            self.autolevel_dock)
 
+        # --- Dock: Editor panel (right, tabified with autolevel) ---
+        self.editor_dock = QDockWidget("Editor", self)
+        self.editor_dock.setAllowedAreas(
+            Qt.DockWidgetArea.LeftDockWidgetArea
+            | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.editor_panel = EditorPanel(sender.gcode, self.signals)
+        self.editor_dock.setWidget(self.editor_panel)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea,
+                           self.editor_dock)
+        self.tabifyDockWidget(self.autolevel_dock, self.editor_dock)
+        self.editor_dock.raise_()
+
         # --- Status bar ---
         self._setup_statusbar()
 
@@ -120,6 +133,9 @@ class MainWindow(QMainWindow):
         self.signals.run_requested.connect(self._on_run)
         self.signals.stop_requested.connect(self._on_stop)
         self.signals.pause_requested.connect(self._on_pause)
+
+        # Editor signals
+        self.signals.file_loaded.connect(self.editor_panel.fill)
 
         # Probe / autolevel signals
         self.signals.draw_probe.connect(self._on_draw_probe)
@@ -221,6 +237,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.control_dock.toggleViewAction())
         view_menu.addAction(self.terminal_dock.toggleViewAction())
         view_menu.addAction(self.autolevel_dock.toggleViewAction())
+        view_menu.addAction(self.editor_dock.toggleViewAction())
 
         view_menu.addSeparator()
 
@@ -228,6 +245,36 @@ class MainWindow(QMainWindow):
         fit_action.setShortcut(QKeySequence("Ctrl+0"))
         fit_action.triggered.connect(self.canvas_panel.view.fit_to_content)
         view_menu.addAction(fit_action)
+
+        # Edit menu
+        edit_menu = menubar.addMenu("&Edit")
+
+        undo_action = QAction("&Undo", self)
+        undo_action.setShortcut(QKeySequence.StandardKey.Undo)
+        undo_action.triggered.connect(self._on_undo)
+        edit_menu.addAction(undo_action)
+
+        redo_action = QAction("&Redo", self)
+        redo_action.setShortcut(QKeySequence("Ctrl+Shift+Z"))
+        redo_action.triggered.connect(self._on_redo)
+        edit_menu.addAction(redo_action)
+
+        edit_menu.addSeparator()
+
+        cut_action = QAction("Cu&t", self)
+        cut_action.setShortcut(QKeySequence.StandardKey.Cut)
+        cut_action.triggered.connect(self.editor_panel.cut)
+        edit_menu.addAction(cut_action)
+
+        copy_action = QAction("&Copy", self)
+        copy_action.setShortcut(QKeySequence.StandardKey.Copy)
+        copy_action.triggered.connect(self.editor_panel.copy)
+        edit_menu.addAction(copy_action)
+
+        paste_action = QAction("&Paste", self)
+        paste_action.setShortcut(QKeySequence.StandardKey.Paste)
+        paste_action.triggered.connect(self.editor_panel.paste)
+        edit_menu.addAction(paste_action)
 
     # ------------------------------------------------------------------
     # Toolbar
@@ -318,6 +365,16 @@ class MainWindow(QMainWindow):
         self._buffer_bar.setVisible(True)
         self._buffer_bar.setValue(int(percent))
 
+    def _on_undo(self):
+        self.sender.gcode.undo()
+        self.editor_panel.fill()
+        self._on_draw()
+
+    def _on_redo(self):
+        self.sender.gcode.redo()
+        self.editor_panel.fill()
+        self._on_draw()
+
     def _on_draw(self):
         """Rebuild the canvas from current gcode."""
         self.canvas_panel.rebuild(self.sender.gcode, self.sender.cnc)
@@ -338,6 +395,7 @@ class MainWindow(QMainWindow):
     def _set_widgets_enabled(self, enabled):
         self.control_panel.setEnabled(enabled)
         self.autolevel_panel.setEnabled(enabled)
+        self.editor_panel.setEnabled(enabled)
         self.menuBar().setEnabled(enabled)
 
     # ------------------------------------------------------------------
