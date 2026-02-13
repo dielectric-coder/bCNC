@@ -171,6 +171,11 @@ class MainWindow(QMainWindow):
         self._buffer_bar.setVisible(False)
         self.statusbar.addPermanentWidget(self._buffer_bar)
 
+        self._sel_label = QLabel("")
+        self._sel_label.setMinimumWidth(90)
+        self._sel_label.setStyleSheet("color: darkblue;")
+        self.statusbar.addPermanentWidget(self._sel_label)
+
         self._coord_x = QLabel("X: 0.000")
         self._coord_x.setMinimumWidth(80)
         self._coord_x.setStyleSheet("color: darkred;")
@@ -382,9 +387,11 @@ class MainWindow(QMainWindow):
         self._on_draw()
 
     def _on_editor_selection_changed(self):
-        """Editor selection changed → highlight on canvas."""
+        """Editor selection changed → highlight on canvas + update status."""
         blocks = self.editor_panel.get_selected_blocks()
         self.canvas_panel.highlight_selection(blocks)
+        n = len(blocks)
+        self._sel_label.setText(f"Sel: {n} block{'s' if n != 1 else ''}" if n else "")
 
     def _on_canvas_block_clicked(self, bid, ctrl):
         """Canvas path clicked → select in editor."""
