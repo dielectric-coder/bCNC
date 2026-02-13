@@ -87,9 +87,9 @@ class CNCGraphicsView(QGraphicsView):
         elif event.button() == Qt.MouseButton.LeftButton:
             scene_pos = self.mapToScene(event.position().toPoint())
             item = self.scene().itemAt(scene_pos, self.transform())
-            path_items = self.scene()._path_items
-            if item is not None and item in path_items:
-                bid, lid = path_items[item]
+            path_id = self.scene().path_id_at(item) if item else None
+            if path_id is not None:
+                bid, lid = path_id
                 ctrl = bool(event.modifiers() & Qt.KeyboardModifier.ControlModifier)
                 self.canvas_block_clicked.emit(bid, ctrl)
                 event.accept()
@@ -392,6 +392,10 @@ class CNCScene(QGraphicsScene):
 
             block.endPath(cnc.x, cnc.y, cnc.z)
 
+    def path_id_at(self, item):
+        """Return (block_id, line_id) for a path item, or None."""
+        return self._path_items.get(item)
+
     def highlight_selection(self, block_ids):
         """Highlight paths belonging to the given block ids."""
         self.clear_selection()
@@ -402,7 +406,7 @@ class CNCScene(QGraphicsScene):
         highlight_pen.setWidthF(2)
         for item, (bid, lid) in self._path_items.items():
             if bid in bid_set:
-                self._selection_state[item] = item.pen()
+                self._selection_state[item] = QPen(item.pen())
                 item.setPen(highlight_pen)
 
     def clear_selection(self):
@@ -692,10 +696,6 @@ class CanvasPanel(QWidget):
     def highlight_selection(self, block_ids):
         """Highlight paths for the given block ids on the canvas."""
         self.scene.highlight_selection(block_ids)
-
-    def clear_selection(self):
-        """Clear selection highlighting on the canvas."""
-        self.scene.clear_selection()
 
     def _on_probe_toggled(self, checked):
         self.scene.draw_probe = checked

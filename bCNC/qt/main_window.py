@@ -396,6 +396,10 @@ class MainWindow(QMainWindow):
     def _on_draw(self):
         """Rebuild the canvas from current gcode."""
         self.canvas_panel.rebuild(self.sender.gcode, self.sender.cnc)
+        # Re-apply selection highlight (rebuild clears all scene state)
+        blocks = self.editor_panel.get_selected_blocks()
+        if blocks:
+            self.canvas_panel.highlight_selection(blocks)
 
     def _on_draw_probe(self):
         """Draw probe overlay on canvas."""
