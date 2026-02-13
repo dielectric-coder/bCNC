@@ -60,6 +60,8 @@ import Utils
 
 import bFileDialog
 import CNCCanvas
+from CommandDispatcher import GCodeOperations
+from FileManager import FileManager
 
 import rexx
 import Updates
@@ -146,6 +148,14 @@ class Application(Tk, Sender):
         Tk.__init__(self, **kw)
         Sender.__init__(self)
 
+        # Inject UI callbacks into Sender so it can communicate
+        # with the UI without importing tkinter itself.
+        self._ui_set_status = lambda msg: self.setStatus(msg)
+        self._ui_disable = lambda: self.disable()
+        self._ui_enable = lambda: self.enable()
+        self._ui_show_info = lambda title, msg: messagebox.showinfo(
+            title, msg, parent=self)
+
         Utils.loadIcons()
         tkinter.CallWrapper = Utils.CallWrapper
         tkExtra.bindClasses(self)
@@ -157,6 +167,8 @@ class Application(Tk, Sender):
 
         # Global variables
         self.tools = Tools(self.gcode)
+        self.gcode_ops = GCodeOperations(self.gcode, self.tools)
+        self.file_manager = FileManager(self)
         self.controller = None
         self.loadConfig()
         # --- Ribbon ---
@@ -1984,41 +1996,7 @@ class Application(Tk, Sender):
             return
 
         self.busy()
-        sel = None
-        if cmd == "AUTOLEVEL":
-            sel = self.gcode.autolevel(items)
-        elif cmd == "CUT":
-            sel = self.gcode.cut(items, *args)
-        elif cmd == "CLOSE":
-            sel = self.gcode.close(items)
-        elif cmd == "DIRECTION":
-            sel = self.gcode.cutDirection(items, *args)
-        elif cmd == "DRILL":
-            sel = self.gcode.drill(items, *args)
-        elif cmd == "ORDER":
-            self.gcode.orderLines(items, *args)
-        elif cmd == "INKSCAPE":
-            self.gcode.inkscapeLines()
-        elif cmd == "ISLAND":
-            self.gcode.island(items, *args)
-        elif cmd == "MIRRORH":
-            self.gcode.mirrorHLines(items)
-        elif cmd == "MIRRORV":
-            self.gcode.mirrorVLines(items)
-        elif cmd == "MOVE":
-            self.gcode.moveLines(items, *args)
-        elif cmd == "OPTIMIZE":
-            self.gcode.optimize(items)
-        elif cmd == "ORIENT":
-            self.gcode.orientLines(items)
-        elif cmd == "REVERSE":
-            self.gcode.reverse(items, *args)
-        elif cmd == "ROUND":
-            self.gcode.roundLines(items, *args)
-        elif cmd == "ROTATE":
-            self.gcode.rotateLines(items, *args)
-        elif cmd == "TABS":
-            sel = self.gcode.createTabs(items, *args)
+        sel, status = self.gcode_ops.execute_on_items(cmd, items, *args)
 
         # Fill listbox and update selection
         self.editor.fill()
@@ -2029,9 +2007,7 @@ class Application(Tk, Sender):
                 self.editor.select(sel, clear=True)
         self.drawAfter()
         self.notBusy()
-        self.setStatus(
-            f"{cmd} {' '.join([str(a) for a in args if a is not None])}"
-        )
+        self.setStatus(status)
 
     # -----------------------------------------------------------------------
     def profile(
@@ -2042,32 +2018,10 @@ class Application(Tk, Sender):
         name=None,
         pocket=False,
     ):
-        tool = self.tools["EndMill"]
-        ofs = self.tools.fromMm(tool["diameter"]) / 2.0
-        sign = 1.0
-
-        if direction is None:
-            pass
-        elif rexx.abbrev("INSIDE", direction.upper()):
-            sign = -1.0
-        elif rexx.abbrev("OUTSIDE", direction.upper()):
-            sign = 1.0
-        else:
-            try:
-                ofs = float(direction) / 2.0
-            except Exception:
-                pass
-
-        # additional offset
-        try:
-            ofs += float(offset)
-        except Exception:
-            pass
-
         self.busy()
         blocks = self.editor.getSelectedBlocks()
-        # on return we have the blocks with the new blocks to select
-        msg = self.gcode.profile(blocks, ofs * sign, overcut, name, pocket)
+        msg, computed_ofs = self.gcode_ops.profile(
+            blocks, direction, offset, overcut, name, pocket)
         if msg:
             messagebox.showwarning(
                 "Open paths", f"WARNING: {msg}", parent=self)
@@ -2075,21 +2029,14 @@ class Application(Tk, Sender):
         self.editor.selectBlocks(blocks)
         self.draw()
         self.notBusy()
-        self.setStatus(_("Profile block distance={:g}").format(ofs * sign))
+        self.setStatus(
+            _("Profile block distance={:g}").format(computed_ofs))
 
     # -----------------------------------------------------------------------
     def pocket(self, name=None):
-        tool = self.tools["EndMill"]
-        diameter = self.tools.fromMm(tool["diameter"])
-        try:
-            stepover = tool["stepover"] / 100.0
-        except TypeError:
-            stepover = 0.0
-
         self.busy()
         blocks = self.editor.getSelectedBlocks()
-        # on return we have the blocks with the new blocks to select
-        msg = self.gcode.pocket(blocks, diameter, stepover, name)
+        msg = self.gcode_ops.pocket(blocks, name)
         if msg:
             messagebox.showwarning(
                 _("Open paths"), _("WARNING: {}").format(msg), parent=self
@@ -2115,52 +2062,18 @@ class Application(Tk, Sender):
         tabsWidth=0.0,
         tabsHeight=0.0,
     ):
-        adaptedRadius = float(adaptedRadius)
-        ofs = float(cutDiam) / 2.0
-        sign = 1.0
-
-        if direction is None:
-            pass
-        elif rexx.abbrev("INSIDE", direction.upper()):
-            sign = -1.0
-        elif rexx.abbrev("OUTSIDE", direction.upper()):
-            sign = 1.0
-        elif rexx.abbrev("ON", direction.upper()):
-            ofs = 0
-        else:
-            try:
-                ofs = float(direction) / 2.0
-            except Exception:
-                pass
-
-        # additional offset
-        try:
-            ofs += float(offset)
-        except Exception:
-            pass
-
         self.busy()
         blocks = self.editor.getSelectedBlocks()
-        # on return we have the blocks with the new blocks to select
-        msg = self.gcode.trochprofile_cnc(
-            blocks,
-            ofs * sign,
-            overcut,
-            adaptative,
-            adaptedRadius,
-            cutDiam,
-            tooldiameter,
-            targetDepth,
-            depthIncrement,
-            tabsnumber,
-            tabsWidth,
-            tabsHeight,
+        msg, is_adaptative, computed_ofs = self.gcode_ops.trochprofile(
+            blocks, cutDiam, direction, offset, overcut,
+            adaptative, adaptedRadius, tooldiameter,
+            targetDepth, depthIncrement,
+            tabsnumber, tabsWidth, tabsHeight,
         )
         if msg:
             messagebox.showwarning(
                 "Open paths", f"WARNING: {msg}", parent=self)
-        msg2 = adaptative
-        if msg2:
+        if is_adaptative:
             messagebox.showwarning(
                 "Adaptative",
                 "WARNING: Adaptive route generated, but Trocoidal still does "
@@ -2173,7 +2086,8 @@ class Application(Tk, Sender):
         self.editor.selectBlocks(blocks)
         self.draw()
         self.notBusy()
-        self.setStatus(_("Profile block distance={:g}").format(ofs * sign))
+        self.setStatus(
+            _("Profile block distance={:g}").format(computed_ofs))
 
     # -----------------------------------------------------------------------
     def edit(self, event=None):
@@ -2435,25 +2349,14 @@ class Application(Tk, Sender):
                 ],
             )
         if filename:
-            fn, ext = os.path.splitext(filename)
-            ext = ext.lower()
-            gcode = GCode()
-            if ext == ".dxf":
-                gcode.importDXF(filename)
-            elif ext == ".svg":
-                gcode.importSVG(filename)
-            else:
-                gcode.load(filename)
-            sel = self.editor.getSelectedBlocks()
-            if not sel:
-                pos = None
-            else:
-                pos = sel[-1]
-            self.addUndo(self.gcode.insBlocksUndo(pos, gcode.blocks))
-            del gcode
-            self.editor.fill()
-            self.draw()
-            self.canvas.fit2Screen()
+            blocks = self.file_manager.import_file(filename)
+            if blocks:
+                sel = self.editor.getSelectedBlocks()
+                pos = sel[-1] if sel else None
+                self.addUndo(self.gcode.insBlocksUndo(pos, blocks))
+                self.editor.fill()
+                self.draw()
+                self.canvas.fit2Screen()
 
     # -----------------------------------------------------------------------
     def focusIn(self, event):

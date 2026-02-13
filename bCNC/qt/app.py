@@ -1,0 +1,68 @@
+# Qt Application Entry Point
+#
+# Launches the Qt-based bCNC interface.  This is the Qt equivalent
+# of running bCNC through __main__.py with the Tkinter UI.
+#
+# Usage:
+#     python -m bCNC.qt.app
+#   or from the bCNC directory:
+#     python qt/app.py
+
+import os
+import sys
+
+# Ensure bCNC package is on the path
+_bCNC_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _bCNC_dir not in sys.path:
+    sys.path.insert(0, _bCNC_dir)
+# Also add lib/ for tkExtra, rexx, etc.
+_lib_dir = os.path.join(_bCNC_dir, "lib")
+if _lib_dir not in sys.path:
+    sys.path.insert(0, _lib_dir)
+# Also add controllers/ and plugins/
+_ctrl_dir = os.path.join(_bCNC_dir, "controllers")
+if _ctrl_dir not in sys.path:
+    sys.path.insert(0, _ctrl_dir)
+_plug_dir = os.path.join(_bCNC_dir, "plugins")
+if _plug_dir not in sys.path:
+    sys.path.insert(0, _plug_dir)
+
+# Install _() translation builtin before any other bCNC imports
+# (Helpers.py does gettext.install() which puts _() in builtins)
+import Helpers  # noqa: F401
+
+import Utils
+Utils.loadConfiguration()
+
+from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
+
+from CNC import CNC
+from Sender import Sender
+
+from .main_window import MainWindow
+
+
+def main():
+    """Create the QApplication, Sender, and MainWindow, then run."""
+
+    app = QApplication(sys.argv)
+    app.setApplicationName("bCNC")
+    app.setApplicationVersion(Utils.__version__)
+
+    # Create the Sender (backend — no UI dependency)
+    sender = Sender()
+    sender.loadConfig()
+
+    # Create and show the main window
+    window = MainWindow(sender)
+    window.show()
+
+    # Initial draw (empty canvas)
+    window._on_draw()
+
+    sys.exit(app.exec())
+
+
+if __name__ == "__main__":
+    main()

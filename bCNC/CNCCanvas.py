@@ -49,6 +49,8 @@ import Camera
 import tkExtra
 import Utils
 from CNC import CNC
+import ViewTransform
+import PathGeometry
 
 # Probe mapping we need PIL and numpy
 try:
@@ -433,26 +435,8 @@ class CNCCanvas(Canvas):
     # Convert canvas cx,cy coordinates to machine space
     # ----------------------------------------------------------------------
     def canvas2Machine(self, cx, cy):
-        u = cx / self.zoom
-        v = cy / self.zoom
-
-        if self.view == VIEW_XY:
-            return u, -v, None
-
-        elif self.view == VIEW_XZ:
-            return u, None, -v
-
-        elif self.view == VIEW_YZ:
-            return None, u, -v
-
-        elif self.view == VIEW_ISO1:
-            return 0.5 * (u / S60 + v / C60), 0.5 * (u / S60 - v / C60), None
-
-        elif self.view == VIEW_ISO2:
-            return 0.5 * (u / S60 - v / C60), -0.5 * (u / S60 + v / C60), None
-
-        elif self.view == VIEW_ISO3:
-            return -0.5 * (u / S60 + v / C60), -0.5 * (u / S60 - v / C60), None
+        return ViewTransform.canvas_to_machine(
+            cx, cy, self.view, self.zoom)
 
     # ----------------------------------------------------------------------
     # Image (pixel) coordinates to machine
@@ -1480,33 +1464,16 @@ class CNCCanvas(Canvas):
         if not self.draw_axes:
             return
 
-        dx = CNC.vars["axmax"] - CNC.vars["axmin"]
-        dy = CNC.vars["aymax"] - CNC.vars["aymin"]
-        d = min(dx, dy)
-        try:
-            s = math.pow(10.0, int(math.log10(d)))
-        except Exception:
-            if CNC.inch:
-                s = 10.0
-            else:
-                s = 100.0
-        xyz = [(0.0, 0.0, 0.0), (s, 0.0, 0.0)]
-        self.create_line(
-            self.plotCoords(xyz), tag="Axes", fill="Red",
-            dash=(3, 1), arrow=LAST
-        )
+        s = ViewTransform.compute_axis_scale(
+            CNC.vars["axmin"], CNC.vars["axmax"], CNC.inch)
+        axes = PathGeometry.generate_axes(s)
 
-        xyz = [(0.0, 0.0, 0.0), (0.0, s, 0.0)]
-        self.create_line(
-            self.plotCoords(xyz), tag="Axes", fill="Green",
-            dash=(3, 1), arrow=LAST
-        )
-
-        xyz = [(0.0, 0.0, 0.0), (0.0, 0.0, s)]
-        self.create_line(
-            self.plotCoords(xyz), tag="Axes", fill="Blue",
-            dash=(3, 1), arrow=LAST
-        )
+        colors = {"x": "Red", "y": "Green", "z": "Blue"}
+        for axis_name, xyz in axes.items():
+            self.create_line(
+                self.plotCoords(xyz), tag="Axes",
+                fill=colors[axis_name], dash=(3, 1), arrow=LAST
+            )
 
     # ----------------------------------------------------------------------
     # Draw margins of selected blocks
@@ -1521,26 +1488,20 @@ class CNCCanvas(Canvas):
             return
 
         if CNC.isMarginValid():
-            xyz = [
-                (CNC.vars["xmin"], CNC.vars["ymin"], 0.0),
-                (CNC.vars["xmax"], CNC.vars["ymin"], 0.0),
-                (CNC.vars["xmax"], CNC.vars["ymax"], 0.0),
-                (CNC.vars["xmin"], CNC.vars["ymax"], 0.0),
-                (CNC.vars["xmin"], CNC.vars["ymin"], 0.0),
-            ]
+            xyz = PathGeometry.generate_margin_rect(
+                CNC.vars["xmin"], CNC.vars["ymin"],
+                CNC.vars["xmax"], CNC.vars["ymax"],
+            )
             self._margin = self.create_line(self.plotCoords(xyz),
                                             fill=MARGIN_COLOR)
             self.tag_lower(self._margin)
 
         if not CNC.isAllMarginValid():
             return
-        xyz = [
-            (CNC.vars["axmin"], CNC.vars["aymin"], 0.0),
-            (CNC.vars["axmax"], CNC.vars["aymin"], 0.0),
-            (CNC.vars["axmax"], CNC.vars["aymax"], 0.0),
-            (CNC.vars["axmin"], CNC.vars["aymax"], 0.0),
-            (CNC.vars["axmin"], CNC.vars["aymin"], 0.0),
-        ]
+        xyz = PathGeometry.generate_margin_rect(
+            CNC.vars["axmin"], CNC.vars["aymin"],
+            CNC.vars["axmax"], CNC.vars["aymax"],
+        )
         self._amargin = self.create_line(
             self.plotCoords(xyz), dash=(3, 2), fill=MARGIN_COLOR
         )
@@ -1569,10 +1530,7 @@ class CNCCanvas(Canvas):
     # Draw a 3D path
     # ----------------------------------------------------------------------
     def _drawPath(self, path, z=0.0, **kwargs):
-        xyz = []
-        for segment in path:
-            xyz.append((segment.A[0], segment.A[1], z))
-            xyz.append((segment.B[0], segment.B[1], z))
+        xyz = PathGeometry.path_segments_to_xyz(path, z)
         rect = (self.create_line(self.plotCoords(xyz), **kwargs),)
         return rect
 
@@ -1580,13 +1538,7 @@ class CNCCanvas(Canvas):
     # Draw a 3D rectangle
     # ----------------------------------------------------------------------
     def _drawRect(self, xmin, ymin, xmax, ymax, z=0.0, **kwargs):
-        xyz = [
-            (xmin, ymin, z),
-            (xmax, ymin, z),
-            (xmax, ymax, z),
-            (xmin, ymax, z),
-            (xmin, ymin, z),
-        ]
+        xyz = PathGeometry.rect_to_xyz(xmin, ymin, xmax, ymax, z)
         rect = (self.create_line(self.plotCoords(xyz), **kwargs),)
         return rect
 
@@ -1599,14 +1551,10 @@ class CNCCanvas(Canvas):
         if not self.draw_workarea:
             return
 
-        xmin = self._dx - CNC.travel_x
-        ymin = self._dy - CNC.travel_y
-        xmax = self._dx
-        ymax = self._dy
-
-        self._workarea = self._drawRect(
-            xmin, ymin, xmax, ymax, 0.0, fill=WORK_COLOR, dash=(3, 2)
-        )
+        xyz = PathGeometry.generate_workarea_rect(
+            self._dx, self._dy, CNC.travel_x, CNC.travel_y)
+        self._workarea = (self.create_line(
+            self.plotCoords(xyz), fill=WORK_COLOR, dash=(3, 2)),)
         self.tag_lower(self._workarea)
 
     # ----------------------------------------------------------------------
@@ -1617,28 +1565,14 @@ class CNCCanvas(Canvas):
         if not self.draw_grid:
             return
         if self.view in (VIEW_XY, VIEW_ISO1, VIEW_ISO2, VIEW_ISO3):
-            xmin = (CNC.vars["axmin"] // 10) * 10
-            xmax = (CNC.vars["axmax"] // 10 + 1) * 10
-            ymin = (CNC.vars["aymin"] // 10) * 10
-            ymax = (CNC.vars["aymax"] // 10 + 1) * 10
-            for i in range(
-                int(CNC.vars["aymin"] // 10), int(CNC.vars["aymax"] // 10) + 2
-            ):
-                y = i * 10.0
-                xyz = [(xmin, y, 0), (xmax, y, 0)]
+            grid_lines = PathGeometry.generate_grid_lines(
+                CNC.vars["axmin"], CNC.vars["axmax"],
+                CNC.vars["aymin"], CNC.vars["aymax"],
+            )
+            for xyz in grid_lines:
                 item = self.create_line(
                     self.plotCoords(xyz), tag="Grid",
                     fill=GRID_COLOR, dash=(1, 3)
-                )
-                self.tag_lower(item)
-
-            for i in range(
-                int(CNC.vars["axmin"] // 10), int(CNC.vars["axmax"] // 10) + 2
-            ):
-                x = i * 10.0
-                xyz = [(x, ymin, 0), (x, ymax, 0)]
-                item = self.create_line(
-                    self.plotCoords(xyz), fill=GRID_COLOR, tag="Grid", dash=(1, 3)
                 )
                 self.tag_lower(item)
 
@@ -1996,86 +1930,13 @@ class CNCCanvas(Canvas):
     # NOTE: Use the tkinter._flatten() to pass to self.coords() function
     # ----------------------------------------------------------------------
     def plotCoords(self, xyz):
-        coords = None
-        if self.view == VIEW_XY:
-            coords = [(p[0] * self.zoom, -p[1] * self.zoom) for p in xyz]
-        elif self.view == VIEW_XZ:
-            coords = [(p[0] * self.zoom, -p[2] * self.zoom) for p in xyz]
-        elif self.view == VIEW_YZ:
-            coords = [(p[1] * self.zoom, -p[2] * self.zoom) for p in xyz]
-        elif self.view == VIEW_ISO1:
-            coords = [
-                (
-                    (p[0] * S60 + p[1] * S60) * self.zoom,
-                    (+p[0] * C60 - p[1] * C60 - p[2]) * self.zoom,
-                )
-                for p in xyz
-            ]
-        elif self.view == VIEW_ISO2:
-            coords = [
-                (
-                    (p[0] * S60 - p[1] * S60) * self.zoom,
-                    (-p[0] * C60 - p[1] * C60 - p[2]) * self.zoom,
-                )
-                for p in xyz
-            ]
-        elif self.view == VIEW_ISO3:
-            coords = [
-                (
-                    (-p[0] * S60 - p[1] * S60) * self.zoom,
-                    (-p[0] * C60 + p[1] * C60 - p[2]) * self.zoom,
-                )
-                for p in xyz
-            ]
-        # Check limits
-        for i, (x, y) in enumerate(coords):
-            if abs(x) > MAXDIST or abs(y) > MAXDIST:
-                if x < -MAXDIST:
-                    x = -MAXDIST
-                elif x > MAXDIST:
-                    x = MAXDIST
-                if y < -MAXDIST:
-                    y = -MAXDIST
-                elif y > MAXDIST:
-                    y = MAXDIST
-                coords[i] = (x, y)
-        return coords
+        return ViewTransform.project_3d_to_2d(xyz, self.view, self.zoom)
 
     # ----------------------------------------------------------------------
     # Canvas to real coordinates
     # ----------------------------------------------------------------------
     def canvas2xyz(self, i, j):
-        if self.view == VIEW_XY:
-            x = i / self.zoom
-            y = -j / self.zoom
-            z = 0
-
-        elif self.view == VIEW_XZ:
-            x = i / self.zoom
-            y = 0
-            z = -j / self.zoom
-
-        elif self.view == VIEW_YZ:
-            x = 0
-            y = i / self.zoom
-            z = -j / self.zoom
-
-        elif self.view == VIEW_ISO1:
-            x = (i / S60 + j / C60) / self.zoom / 2
-            y = (i / S60 - j / C60) / self.zoom / 2
-            z = 0
-
-        elif self.view == VIEW_ISO2:
-            x = (i / S60 - j / C60) / self.zoom / 2
-            y = -(i / S60 + j / C60) / self.zoom / 2
-            z = 0
-
-        elif self.view == VIEW_ISO3:
-            x = -(i / S60 + j / C60) / self.zoom / 2
-            y = -(i / S60 - j / C60) / self.zoom / 2
-            z = 0
-
-        return x, y, z
+        return ViewTransform.unproject_2d_to_3d(i, j, self.view, self.zoom)
 
 
 # =============================================================================

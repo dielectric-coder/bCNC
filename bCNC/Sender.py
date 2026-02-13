@@ -13,7 +13,6 @@ import time
 import traceback
 import webbrowser
 from datetime import datetime
-from tkinter import messagebox
 from queue import (
     Empty,
     Queue,
@@ -23,6 +22,8 @@ import Pendant
 import rexx
 import Utils
 from CNC import CNC, MSG, UPDATE, WAIT, GCode
+from MachineState import MachineState
+from EventBus import bus as event_bus
 
 __author__ = "Vasilis Vlachoudis"
 __email__ = "vvlachoudis@gmail.com"
@@ -86,6 +87,17 @@ class Sender:
         # Global variables
         self.history = []
         self._historyPos = None
+
+        # Observable machine state wrapper around CNC.vars
+        self.machine_state = MachineState(CNC.vars)
+
+        # UI callbacks - injected by the Application layer.
+        # These replace direct Tkinter widget access, allowing
+        # Sender to remain toolkit-independent.
+        self._ui_set_status = None   # callback(msg: str) -> None
+        self._ui_disable = None      # callback() -> None
+        self._ui_enable = None       # callback() -> None
+        self._ui_show_info = None    # callback(title, message) -> None
 
         self.controllers = {}
         self.controllerLoad()
@@ -270,7 +282,8 @@ class Sender:
                 CNC.vars["safe"] = float(line[1])
             except Exception:
                 pass
-            self.statusbar["text"] = f"Safe Z= {CNC.vars['safe']:g}"
+            if self._ui_set_status:
+                self._ui_set_status(f"Safe Z= {CNC.vars['safe']:g}")
 
         # SA*VE [filename]: save to filename or to default name
         elif rexx.abbrev("SAVE", cmd, 2):
@@ -413,12 +426,13 @@ class Sender:
             # save orientation file
             self.gcode.orient.load(filename)
         elif ext == ".stl" or ext == ".ply":
-            messagebox.showinfo(
-                "Open 3D Mesh",
-                "Importing of 3D mesh files in .STL and .PLY format is "
-                + "supported by SliceMesh plugin.\n"
-                + "You can find it in CAM->SliceMesh.",
-            )
+            if self._ui_show_info:
+                self._ui_show_info(
+                    "Open 3D Mesh",
+                    "Importing of 3D mesh files in .STL and .PLY format is "
+                    + "supported by SliceMesh plugin.\n"
+                    + "You can find it in CAM->SliceMesh.",
+                )
 
         elif ext == ".dxf":
             self.gcode.init()
@@ -650,9 +664,43 @@ class Sender:
         self._pause = False
         self._paths = None
         self.running = True
-        self.disable()
+        if self._ui_disable:
+            self._ui_disable()
         self.emptyQueue()
         time.sleep(1)
+
+    # ----------------------------------------------------------------------
+    # Run a list of gcode lines (e.g. probe scan) without depending on
+    # the Tkinter UI.  Mirrors the `lines` branch of bmain.Application.run().
+    # ----------------------------------------------------------------------
+    def runLines(self, lines):
+        """Queue and execute a list of G-code lines.
+
+        Returns False if the machine is not connected or already running.
+        """
+        if self.serial is None and not CNC.developer:
+            return False
+        if self.running:
+            return False
+
+        self.cleanAfter = True
+        CNC.vars["errline"] = ""
+        self.initRun()
+        self._gcount = 0
+        CNC.vars["running"] = True
+        CNC.vars["_OvChanged"] = True
+
+        n = 1  # including one wait command
+        for line in CNC.compile(lines):
+            if line is not None:
+                if isinstance(line, str):
+                    self.queue.put(line + "\n")
+                else:
+                    self.queue.put(line)
+                n += 1
+        self._runLines = n
+        self.queue.put((WAIT,))
+        return True
 
     # ----------------------------------------------------------------------
     # Called when run is finished
