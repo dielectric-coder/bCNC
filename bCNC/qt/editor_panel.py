@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout,
     QTreeView, QLineEdit, QToolBar, QToolButton,
     QMenu, QAbstractItemView,
-    QApplication,
+    QApplication, QColorDialog,
 )
 
 from CNC import CNC, Block
@@ -65,6 +65,10 @@ class EditorPanel(QWidget):
             | QAbstractItemView.EditTrigger.EditKeyPressed)
         self._tree.setAnimated(False)
         self._tree.setIndentation(16)
+        self._tree.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu)
+        self._tree.customContextMenuRequested.connect(
+            self._show_context_menu)
         layout.addWidget(self._tree)
 
         # Selection change signal
@@ -584,6 +588,85 @@ class EditorPanel(QWidget):
         self.gcode.addUndo(undoinfo)
         self._on_modified()
         self.select_items(sel_items)
+
+    # ------------------------------------------------------------------
+    # Context menu
+    # ------------------------------------------------------------------
+    def _show_context_menu(self, pos):
+        sel = self.get_selection()
+        has_sel = bool(sel)
+        has_blocks = bool(self.get_selected_blocks())
+        has_lines = any(lid is not None for _, lid in sel) if sel else False
+        clipboard_has_text = bool(QApplication.clipboard().text())
+
+        menu = QMenu(self._tree)
+
+        # Clipboard group
+        menu.addAction("Cut\tCtrl+X", self.cut).setEnabled(has_sel)
+        menu.addAction("Copy\tCtrl+C", self.copy).setEnabled(has_sel)
+        menu.addAction("Paste\tCtrl+V", self.paste).setEnabled(
+            clipboard_has_text)
+        menu.addSeparator()
+
+        # Add / Clone / Delete
+        menu.addAction("Add Line", self.insert_line)
+        menu.addAction("Add Block", self.insert_block)
+        menu.addAction("Clone\tCtrl+D", self.clone).setEnabled(has_sel)
+        menu.addAction("Delete\tDel", self.delete_block).setEnabled(has_sel)
+        menu.addSeparator()
+
+        # Block toggles
+        menu.addAction(
+            "Enable/Disable\tCtrl+L", self.toggle_enable
+        ).setEnabled(has_blocks)
+        menu.addAction(
+            "Expand/Collapse\tCtrl+E", self.toggle_expand
+        ).setEnabled(has_blocks)
+        menu.addAction("Comment", self.comment_row).setEnabled(has_lines)
+        menu.addSeparator()
+
+        # Ordering
+        menu.addAction("Move Up\tCtrl+Up", self.order_up).setEnabled(has_sel)
+        menu.addAction(
+            "Move Down\tCtrl+Down", self.order_down
+        ).setEnabled(has_sel)
+        menu.addSeparator()
+
+        # Join / Split
+        menu.addAction("Join Blocks", self.join_blocks).setEnabled(
+            len(self.get_selected_blocks()) >= 2 if has_blocks else False)
+        menu.addAction("Split Blocks", self.split_blocks).setEnabled(
+            has_blocks)
+        menu.addSeparator()
+
+        # Selection
+        menu.addAction("Select All\tCtrl+A", self.select_all)
+        menu.addAction("Select None", self.select_clear)
+        menu.addAction("Select Invert", self.select_invert)
+        menu.addAction("Select Layer", self.select_layer).setEnabled(
+            has_blocks)
+        menu.addSeparator()
+
+        # Color submenu
+        color_menu = menu.addMenu("Color")
+        color_menu.setEnabled(has_blocks)
+        colors = [
+            ("Black", "black"), ("Red", "red"), ("Green", "green"),
+            ("Blue", "blue"), ("Yellow", "yellow"), ("Magenta", "magenta"),
+            ("Cyan", "cyan"), ("Orange", "orange"),
+        ]
+        for label, value in colors:
+            color_menu.addAction(
+                label, lambda v=value: self.change_color(v))
+        color_menu.addSeparator()
+        color_menu.addAction("Custom...", self._pick_custom_color)
+
+        menu.exec(self._tree.viewport().mapToGlobal(pos))
+
+    def _pick_custom_color(self):
+        color = QColorDialog.getColor(parent=self)
+        if color.isValid():
+            self.change_color(color.name())
 
     # ------------------------------------------------------------------
     # Internal
