@@ -13,6 +13,7 @@ It provides the same core CNC workflow with dockable panels and a tabbed layout.
     pip install PySide6              # Qt toolkit
 
     python -m bCNC.qt.app            # launch Qt interface
+    python -m bCNC.qt.app file.gcode # launch Qt and open a file
     python -m bCNC                   # launch Tkinter interface (original)
 
 Both commands should be run from the repository root.

@@ -139,11 +139,19 @@ class CNCGraphicsView(QGraphicsView):
             super().mouseMoveEvent(event)
 
     def fit_to_content(self):
-        """Zoom to fit all content in view."""
-        rect = self.scene().itemsBoundingRect()
+        """Zoom to fit path content in view (excludes workarea/grid/axes)."""
+        scene = self.scene()
+        # Prefer fitting to path items only so the workarea rect
+        # (which can be 300x300mm) doesn't dominate the viewport.
+        if hasattr(scene, '_path_items') and scene._path_items:
+            rect = QRectF()
+            for item in scene._path_items:
+                rect = rect.united(item.sceneBoundingRect())
+        else:
+            rect = scene.itemsBoundingRect()
         if rect.isNull():
             return
-        margin = rect.width() * 0.05
+        margin = max(rect.width(), rect.height()) * 0.05
         rect.adjust(-margin, -margin, margin, margin)
         self.fitInView(rect, Qt.AspectRatioMode.KeepAspectRatio)
 
@@ -197,10 +205,11 @@ class CNCScene(QGraphicsScene):
         self._path_items = {}
         self._selection_state = {}
 
+        # Draw paths first so margins are computed before grid/workarea
+        self._draw_paths(gcode, cnc)
         self._draw_grid()
         self._draw_margin()
         self._draw_workarea()
-        self._draw_paths(gcode, cnc)
         self._draw_axes()
         self._draw_gantry(0, 0)
 
@@ -230,11 +239,12 @@ class CNCScene(QGraphicsScene):
             xyz, self.view_mode, self.zoom)
 
     def _make_pen(self, color, width=1, dash=None):
-        """Create a QPen from parameters."""
+        """Create a cosmetic QPen (constant pixel width regardless of zoom)."""
         if isinstance(color, str):
             color = QColor(color)
         pen = QPen(color)
         pen.setWidthF(width)
+        pen.setCosmetic(True)
         if dash:
             pen.setStyle(Qt.PenStyle.DashLine)
         return pen
@@ -314,8 +324,7 @@ class CNCScene(QGraphicsScene):
 
         diameter = CNC.vars.get("diameter", 3.175)
         r = max(3, diameter / 2.0 * self.zoom)
-        pen = QPen(COLORS["gantry"])
-        pen.setWidthF(2)
+        pen = self._make_pen(COLORS["gantry"], 2)
 
         if self.view_mode == ViewTransform.VIEW_XY:
             ellipse = self.addEllipse(
@@ -400,8 +409,7 @@ class CNCScene(QGraphicsScene):
                         block.addPath(None)
                         continue
                 else:
-                    pen = QPen(color)
-                    pen.setWidthF(1)
+                    pen = self._make_pen(color, 1)
 
                 item = self._add_polyline_item(coords, pen)
                 self._path_items[item] = (i, j)

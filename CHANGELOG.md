@@ -54,6 +54,10 @@ Backend decoupling and experimental Qt (PySide6) interface.
     `[Buttons]` config (shared with Tkinter), click to execute multi-line G-code,
     right-click to edit name/tooltip/command, uses pendant queue for execution
   - Pendant controls: Start/Stop Pendant in Machine menu with status messages
+  - Canvas rendering fixes: correct draw order (paths first, then grid/workarea),
+    fit-to-content zooms to toolpaths instead of the full workarea, cosmetic pens
+    for consistent line widths at any zoom level
+  - Command-line file loading: `python -m bCNC.qt.app <file.gcode>`
 
 ## 0.9.16
 - Breaking changes:

@@ -126,7 +126,8 @@ docking/layout system.
 
 **Launch:**
 
-    python -m bCNC.qt.app
+    python -m bCNC.qt.app            # empty canvas
+    python -m bCNC.qt.app file.gcode # open a file on startup
 
 **Current status:** The Qt interface covers the main workflow — connecting, jogging,
 editing G-code, probing, autoleveling, camera alignment, orientation alignment,

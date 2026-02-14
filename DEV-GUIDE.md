@@ -14,6 +14,7 @@ pip install PySide6              # Qt toolkit
 
 python -m bCNC                   # launch Tkinter UI
 python -m bCNC.qt.app            # launch Qt UI
+python -m bCNC.qt.app file.gcode # launch Qt UI and open a file
 ```
 
 Both commands should be run from the repository root.

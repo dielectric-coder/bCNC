@@ -58,8 +58,16 @@ def main():
     window = MainWindow(sender)
     window.show()
 
-    # Initial draw (empty canvas)
+    # Load file from command line if provided
+    args = [a for a in sys.argv[1:] if not a.startswith("-")]
+    if args and os.path.isfile(args[0]):
+        sender.load(args[0])
+        Utils.addRecent(args[0])
+        window.signals.file_loaded.emit(args[0])
+
+    # Initial draw
     window._on_draw()
+    window._update_title()
 
     sys.exit(app.exec())
 
