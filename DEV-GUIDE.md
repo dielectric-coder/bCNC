@@ -237,7 +237,6 @@ Special line prefixes in runLines sequences:
 
 ### Lower Priority
 - **Advanced toolbar/ribbon** — Tkinter uses CNCRibbon with configurable groups
-- **User-configurable buttons** — custom macro buttons
 - **DRO font customization** — configurable fonts from config
 
 ### Not Needed

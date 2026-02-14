@@ -116,7 +116,7 @@ docking/layout system.
 editing G-code, probing, autoleveling, camera alignment, orientation alignment,
 tool changes, CAM operations, web pendant, 6-axis (ABC) support, workspace
 selection (G54-G59), spindle/coolant controls with real-time feed/spindle/rapid
-override management, and running jobs.
+override management, user-configurable macro buttons, and running jobs.
 See [USER-GUIDE.md](USER-GUIDE.md) for details.
 
 The original Tkinter UI remains fully functional and is the default.

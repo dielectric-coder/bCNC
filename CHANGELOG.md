@@ -48,6 +48,9 @@ Backend decoupling and experimental Qt (PySide6) interface.
     circles, apply orientation transform to selected blocks
   - Help menu: Documentation link (F1), Check for Updates (queries PyPI),
     About dialog
+  - User-configurable macro buttons: 3-column grid of custom buttons loaded from
+    `[Buttons]` config (shared with Tkinter), click to execute multi-line G-code,
+    right-click to edit name/tooltip/command, uses pendant queue for execution
   - Pendant controls: Start/Stop Pendant in Machine menu with status messages
 
 ## 0.9.16

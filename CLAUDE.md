@@ -137,7 +137,6 @@ python -m bCNC.qt.app
 
 ## Remaining Gaps (Tkinter → Qt)
 
-- **User-configurable macro buttons**
 - **DRO font customization**
 
 ## Documentation Files

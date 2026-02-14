@@ -71,6 +71,17 @@ machine is not connected or not yet homed.
 - **Reset** — soft reset
 - **Home All** — home all axes
 
+### Custom Buttons
+A grid of user-configurable macro buttons between Spindle/Overrides and Execution.
+Each button can run multi-line G-code commands with variable substitution (`[safe]`,
+`[prbx]`, etc.).
+
+- **Click** a button to execute its command (empty buttons open the edit dialog)
+- **Right-click** any button to edit its name, tooltip, and command
+- Buttons are stored in the `[Buttons]` config section, shared with the Tkinter UI
+- Commands are queued through the pendant system and support all Sender features
+  (G-code, SENDHEX, `%wait`, variable substitution)
+
 ## Canvas (Center)
 
 - **Scroll wheel** — zoom in/out

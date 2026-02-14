@@ -8,7 +8,7 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QGroupBox, QLabel, QLineEdit, QPushButton,
-    QComboBox, QDoubleSpinBox,
+    QComboBox, QDoubleSpinBox, QDialog, QTextEdit,
 )
 
 import Utils
@@ -417,6 +417,101 @@ class StateWidget(QWidget):
             self.sender.sendGCode(f"M3 S{rpm}")
 
 
+class MacroEditDialog(QDialog):
+    """Dialog for editing a user macro button's name, tooltip, and command."""
+
+    def __init__(self, index, parent=None):
+        super().__init__(parent)
+        self._index = index
+        self.setWindowTitle(f"Edit Button {index}")
+
+        layout = QVBoxLayout(self)
+
+        layout.addWidget(QLabel("Name:"))
+        self._name = QLineEdit(
+            Utils.config.get("Buttons", f"name.{index}", fallback=str(index)))
+        layout.addWidget(self._name)
+
+        layout.addWidget(QLabel("Tooltip:"))
+        self._tooltip = QLineEdit(
+            Utils.config.get("Buttons", f"tooltip.{index}", fallback=""))
+        layout.addWidget(self._tooltip)
+
+        layout.addWidget(QLabel("Command:"))
+        self._command = QTextEdit()
+        self._command.setPlainText(
+            Utils.config.get("Buttons", f"command.{index}", fallback=""))
+        self._command.setMinimumHeight(120)
+        layout.addWidget(self._command)
+
+        btn_layout = QHBoxLayout()
+        ok_btn = QPushButton("OK")
+        ok_btn.clicked.connect(self.accept)
+        cancel_btn = QPushButton("Cancel")
+        cancel_btn.clicked.connect(self.reject)
+        btn_layout.addWidget(ok_btn)
+        btn_layout.addWidget(cancel_btn)
+        layout.addLayout(btn_layout)
+
+    def accept(self):
+        i = self._index
+        if not Utils.config.has_section("Buttons"):
+            Utils.config.add_section("Buttons")
+        Utils.config.set("Buttons", f"name.{i}", self._name.text().strip())
+        Utils.config.set("Buttons", f"tooltip.{i}", self._tooltip.text().strip())
+        Utils.config.set("Buttons", f"command.{i}",
+                         self._command.toPlainText().strip())
+        super().accept()
+
+
+class MacroButtonsWidget(QWidget):
+    """User-configurable macro buttons loaded from [Buttons] config."""
+
+    def __init__(self, sender, parent=None):
+        super().__init__(parent)
+        self.sender = sender
+        self._buttons = []
+
+        self._layout = QGridLayout(self)
+        self._layout.setContentsMargins(2, 2, 2, 2)
+        self._layout.setSpacing(2)
+        self._build_buttons()
+
+    def _build_buttons(self):
+        for btn in self._buttons:
+            btn.deleteLater()
+        self._buttons.clear()
+
+        n = Utils.getInt("Buttons", "n", 6)
+        for i in range(1, n):  # Skip button 0 (Tkinter jog-pad origin)
+            name = Utils.config.get("Buttons", f"name.{i}", fallback=str(i))
+            tooltip = Utils.config.get("Buttons", f"tooltip.{i}", fallback="")
+            btn = QPushButton(name)
+            btn.setToolTip(tooltip or "Right-click to configure")
+            btn.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            btn.clicked.connect(lambda checked, idx=i: self._execute(idx))
+            btn.customContextMenuRequested.connect(
+                lambda pos, idx=i: self._edit(idx))
+            row, col = divmod(i - 1, 3)  # 3-column grid
+            self._layout.addWidget(btn, row, col)
+            self._buttons.append(btn)
+
+    def _execute(self, index):
+        cmd = Utils.config.get("Buttons", f"command.{index}", fallback="")
+        if not cmd:
+            self._edit(index)
+            return
+        for line in cmd.splitlines():
+            line = line.strip()
+            if line:
+                self.sender.pendant.put(line)
+
+    def _edit(self, index):
+        dlg = MacroEditDialog(index, self)
+        if dlg.exec():
+            self._build_buttons()
+
+
 class ControlPanel(QWidget):
     """Combined control panel with DRO, connection, and jog widgets."""
 
@@ -491,6 +586,14 @@ class ControlPanel(QWidget):
         self.state_widget = StateWidget(sender)
         state_layout.addWidget(self.state_widget)
         layout.addWidget(state_group)
+
+        # Custom macro buttons
+        macro_group = QGroupBox("Custom Buttons")
+        macro_layout = QVBoxLayout(macro_group)
+        macro_layout.setContentsMargins(2, 2, 2, 2)
+        self.macro_buttons = MacroButtonsWidget(sender)
+        macro_layout.addWidget(self.macro_buttons)
+        layout.addWidget(macro_group)
 
         # Run controls
         run_group = QGroupBox("Execution")
