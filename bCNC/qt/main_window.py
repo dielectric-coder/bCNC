@@ -126,6 +126,10 @@ class MainWindow(QMainWindow):
         self.tabifyDockWidget(self.editor_dock, self.tools_dock)
         self.editor_dock.raise_()
 
+        # --- Wire camera tab ↔ canvas overlay ---
+        self.probe_panel.camera_tab.set_camera_overlay(
+            self.canvas_panel.camera_overlay)
+
         # --- Status bar ---
         self._setup_statusbar()
 
@@ -627,6 +631,7 @@ class MainWindow(QMainWindow):
         if self._check_modified():
             event.ignore()
             return
+        self.canvas_panel.camera_overlay.stop()
         self.tools_panel.saveConfig()
         self.probe_panel.saveConfig()
         self.serial_monitor.stop()

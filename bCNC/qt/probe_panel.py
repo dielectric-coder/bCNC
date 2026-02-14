@@ -712,11 +712,9 @@ class ProbePanel(QWidget):
         self.autolevel_tab.set_probe_common(self.probe_common)
         self.tabs.addTab(self.autolevel_tab, "Autolevel")
 
-        camera_placeholder = QLabel("Camera tab — not yet implemented")
-        camera_placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        camera_placeholder.setEnabled(False)
-        camera_idx = self.tabs.addTab(camera_placeholder, "Camera")
-        self.tabs.setTabEnabled(camera_idx, False)
+        from .camera_tab import CameraTab
+        self.camera_tab = CameraTab(sender, signals)
+        self.tabs.addTab(self.camera_tab, "Camera")
 
         self.tool_tab = ToolTab(sender, signals, self.probe_common)
         self.tabs.addTab(self.tool_tab, "Tool")
@@ -738,10 +736,12 @@ class ProbePanel(QWidget):
         self.probe_common.saveConfig()
         self.probe_tab.saveConfig()
         self.autolevel_tab.saveConfig()
+        self.camera_tab.saveConfig()
         self.tool_tab.saveConfig()
 
     def loadConfig(self):
         self.probe_common.loadConfig()
         self.probe_tab.loadConfig()
         self.autolevel_tab.loadConfig()
+        self.camera_tab.loadConfig()
         self.tool_tab.loadConfig()

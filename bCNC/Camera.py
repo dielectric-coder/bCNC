@@ -325,3 +325,17 @@ class Camera:
                                   "RGB")
         )
         return self.imagetk
+
+    # -----------------------------------------------------------------------
+    # Convert to QImage (no PIL dependency)
+    # -----------------------------------------------------------------------
+    def toQImage(self):
+        if self.image is None:
+            return None
+        rgb = cv.cvtColor(self.image, cv.COLOR_BGR2RGB)
+        h, w, ch = rgb.shape
+        bytes_per_line = ch * w
+        from PySide6.QtGui import QImage
+        # .copy() critical — QImage does not own the numpy buffer
+        return QImage(rgb.data, w, h, bytes_per_line,
+                      QImage.Format.Format_RGB888).copy()

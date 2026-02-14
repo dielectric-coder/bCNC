@@ -663,6 +663,10 @@ class CanvasPanel(QWidget):
         layout.addWidget(toolbar)
         layout.addWidget(self.view)
 
+        # Camera overlay
+        from .camera_overlay import CameraOverlay
+        self.camera_overlay = CameraOverlay(self.scene, self.view)
+
         # Wire coordinate display
         self.view.coords_changed.connect(self._on_coords)
 
@@ -688,6 +692,7 @@ class CanvasPanel(QWidget):
     def update_gantry(self, wx, wy, wz, mx, my, mz):
         """Update gantry position marker."""
         self.scene.update_gantry(wx, wy, wz, mx, my, mz)
+        self.camera_overlay.update_gantry(wx, wy, wz)
 
     def draw_probe(self, probe):
         """Draw probe overlay on the canvas."""
