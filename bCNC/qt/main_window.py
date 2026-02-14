@@ -82,6 +82,7 @@ class MainWindow(QMainWindow):
 
         # --- Dock: Control panel (left) ---
         self.control_dock = QDockWidget("Control", self)
+        self.control_dock.setObjectName("ControlDock")
         self.control_dock.setAllowedAreas(
             Qt.DockWidgetArea.LeftDockWidgetArea
             | Qt.DockWidgetArea.RightDockWidgetArea)
@@ -92,6 +93,7 @@ class MainWindow(QMainWindow):
 
         # --- Dock: Editor panel (left, tabified with control) ---
         self.editor_dock = QDockWidget("Editor", self)
+        self.editor_dock.setObjectName("EditorDock")
         self.editor_dock.setAllowedAreas(
             Qt.DockWidgetArea.LeftDockWidgetArea
             | Qt.DockWidgetArea.RightDockWidgetArea)
@@ -103,6 +105,7 @@ class MainWindow(QMainWindow):
 
         # --- Dock: Probe panel (left, tabified) ---
         self.probe_dock = QDockWidget("Probe", self)
+        self.probe_dock.setObjectName("ProbeDock")
         self.probe_dock.setAllowedAreas(
             Qt.DockWidgetArea.LeftDockWidgetArea
             | Qt.DockWidgetArea.RightDockWidgetArea)
@@ -117,6 +120,7 @@ class MainWindow(QMainWindow):
         self.tools_manager.loadConfig()
 
         self.tools_dock = QDockWidget("Tools", self)
+        self.tools_dock.setObjectName("ToolsDock")
         self.tools_dock.setAllowedAreas(
             Qt.DockWidgetArea.LeftDockWidgetArea
             | Qt.DockWidgetArea.RightDockWidgetArea)
@@ -129,6 +133,7 @@ class MainWindow(QMainWindow):
 
         # --- Dock: Terminal panel (left, tabified) ---
         self.terminal_dock = QDockWidget("Terminal", self)
+        self.terminal_dock.setObjectName("TerminalDock")
         self.terminal_dock.setAllowedAreas(
             Qt.DockWidgetArea.LeftDockWidgetArea
             | Qt.DockWidgetArea.RightDockWidgetArea)
@@ -397,6 +402,7 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     def _setup_toolbar(self):
         toolbar = QToolBar("Main")
+        toolbar.setObjectName("MainToolBar")
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
 
