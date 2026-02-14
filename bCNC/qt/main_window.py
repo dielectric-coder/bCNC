@@ -11,7 +11,7 @@ import webbrowser
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
-    QMainWindow, QDockWidget, QStatusBar, QSplitter,
+    QMainWindow, QDockWidget, QStatusBar,
     QLabel, QProgressBar, QMenuBar, QToolBar,
     QFileDialog, QMessageBox,
 )
@@ -69,18 +69,15 @@ class MainWindow(QMainWindow):
         sender._ui_show_info = lambda title, msg: QMessageBox.information(
             self, title, msg)
 
-        # --- Central widget: Canvas + Terminal side by side ---
-        self._central_splitter = QSplitter(Qt.Orientation.Horizontal)
+        # --- Dock tabs on top ---
+        self.setTabPosition(
+            Qt.DockWidgetArea.LeftDockWidgetArea,
+            QMainWindow.DockWidgetTabPosition.North)
+
+        # --- Central widget: Canvas ---
         self.canvas_panel = CanvasPanel(self.signals)
         self.canvas_panel.setMinimumWidth(400)
-        self._central_splitter.addWidget(self.canvas_panel)
-
-        self.terminal_panel = TerminalPanel(sender, self.signals)
-        self.terminal_panel.setMinimumWidth(200)
-        self._central_splitter.addWidget(self.terminal_panel)
-
-        self._central_splitter.setSizes([800, 300])
-        self.setCentralWidget(self._central_splitter)
+        self.setCentralWidget(self.canvas_panel)
 
         # --- Dock: Control panel (left) ---
         self.control_dock = QDockWidget("Control", self)
@@ -128,6 +125,17 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea,
                            self.tools_dock)
         self.tabifyDockWidget(self.probe_dock, self.tools_dock)
+
+        # --- Dock: Terminal panel (left, tabified) ---
+        self.terminal_dock = QDockWidget("Terminal", self)
+        self.terminal_dock.setAllowedAreas(
+            Qt.DockWidgetArea.LeftDockWidgetArea
+            | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.terminal_panel = TerminalPanel(sender, self.signals)
+        self.terminal_dock.setWidget(self.terminal_panel)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea,
+                           self.terminal_dock)
+        self.tabifyDockWidget(self.tools_dock, self.terminal_dock)
 
         # Start with Control tab active
         self.control_dock.raise_()
@@ -317,14 +325,10 @@ class MainWindow(QMainWindow):
         view_menu = menubar.addMenu("&View")
 
         view_menu.addAction(self.control_dock.toggleViewAction())
-        view_menu.addAction(self.probe_dock.toggleViewAction())
         view_menu.addAction(self.editor_dock.toggleViewAction())
+        view_menu.addAction(self.probe_dock.toggleViewAction())
         view_menu.addAction(self.tools_dock.toggleViewAction())
-
-        terminal_action = QAction("Terminal", self, checkable=True)
-        terminal_action.setChecked(True)
-        terminal_action.toggled.connect(self.terminal_panel.setVisible)
-        view_menu.addAction(terminal_action)
+        view_menu.addAction(self.terminal_dock.toggleViewAction())
 
         view_menu.addSeparator()
 

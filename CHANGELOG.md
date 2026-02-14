@@ -61,9 +61,9 @@ Backend decoupling and experimental Qt (PySide6) interface.
   - Editor click-to-toggle: clicking a block row expands/collapses its lines
     directly, no separate Expand button needed; tree arrows also sync with
     block.expand state
-  - Two-column layout: all panels (Control, Editor, Probe, Tools) tabbed in a
-    single left sidebar; canvas and terminal side by side in the central area
-    via a resizable splitter
+  - Two-column layout: all panels (Control, Editor, Probe, Tools, Terminal)
+    tabbed in a single left sidebar with tabs on top; canvas fills the
+    central area
 
 ## 0.9.16
 - Breaking changes:

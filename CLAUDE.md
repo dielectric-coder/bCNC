@@ -31,13 +31,13 @@ QApplication
        ├─ self.sender = Sender()        # backend (serial, G-code queue)
        ├─ self.signals = AppSignals()    # central signal hub (45+ signals)
        ├─ self.serial_monitor            # QTimer → polls Sender → emits signals
-       ├─ self._central_splitter         # QSplitter (canvas | terminal)
-       │    ├─ self.canvas_panel         # QGraphicsView toolpath visualization
-       │    └─ self.terminal_panel       # serial log, command entry
-       ├─ self.control_panel             # left dock tab (DRO, connection, jog)
-       ├─ self.editor_panel              # left dock tab (QTreeView block/line editor)
-       ├─ self.probe_panel               # left dock tab (5 tabs: Probe/Autolevel/Camera/Orient/Tool)
-       └─ self.tools_panel               # left dock tab (plugins, CAM ops)
+       ├─ self.canvas_panel              # central widget (QGraphicsView)
+       └─ left dock (tabs on top):
+            ├─ self.control_panel        # DRO, connection, jog
+            ├─ self.editor_panel         # QTreeView block/line editor
+            ├─ self.probe_panel          # 5 tabs: Probe/Autolevel/Camera/Orient/Tool
+            ├─ self.tools_panel          # plugins, CAM ops
+            └─ self.terminal_panel       # serial log, command entry
 ```
 
 ### CNC.vars — Global State Bus

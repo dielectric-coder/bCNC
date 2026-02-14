@@ -25,12 +25,11 @@ Settings are shared — you can switch between UIs without losing configuration.
 
 The main window has two columns:
 
-- **Left sidebar** — Tabbed dock with Control, Editor, Probe, and Tools panels
-- **Central area** — Canvas (left) and Terminal (right), separated by a
-  draggable splitter
+- **Left sidebar** — Tabbed dock (tabs on top) with Control, Editor, Probe,
+  Tools, and Terminal panels
+- **Central area** — Canvas showing toolpaths, probe data, and gantry position
 
-All dock tabs can be dragged or closed via the View menu. The terminal can
-be toggled from View > Terminal.
+All dock tabs can be dragged or closed via the View menu.
 
 ## Control Panel (Left Sidebar)
 
@@ -342,7 +341,7 @@ Each plugin appears in the tree under its declared group. Select a plugin, fill 
 its parameters, and click Execute to run it. The help panel at the bottom shows
 documentation for the selected tool.
 
-## Terminal Panel (Right of Canvas)
+## Terminal Panel (Left Sidebar)
 
 - **Buffer** — shows serial buffer status
 - **Terminal log** — color-coded serial traffic (sent/received/ok/error)

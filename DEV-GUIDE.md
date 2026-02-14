@@ -89,14 +89,14 @@ QApplication
        ├─ self.sender = Sender()        # backend
        ├─ self.signals = AppSignals()    # signal hub
        ├─ self.serial_monitor            # QTimer → signals
-       ├─ self._central_splitter         # QSplitter (canvas | terminal)
-       │    ├─ self.canvas_panel         # left side of splitter
-       │    └─ self.terminal_panel       # right side of splitter
-       ├─ self.control_panel             # left dock (tab)
-       ├─ self.editor_panel              # left dock (tab)
-       ├─ self.probe_panel               # left dock (tab)
-       ├─ self.tools_manager             # ToolsManager (tool/plugin loader)
-       └─ self.tools_panel               # left dock (tab)
+       ├─ self.canvas_panel              # central widget
+       └─ left dock (tabs on top):
+            ├─ self.control_panel        # DRO, connection, jog
+            ├─ self.editor_panel         # block/line tree editor
+            ├─ self.probe_panel          # probe/autolevel/camera/orient/tool
+            ├─ self.tools_manager        # ToolsManager (tool/plugin loader)
+            ├─ self.tools_panel          # plugin UI, form builder
+            └─ self.terminal_panel       # serial log, command entry
 
 canvas_panel
   ├─ self.camera_overlay                 # CameraOverlay (scene items, QTimer)
