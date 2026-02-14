@@ -138,13 +138,13 @@ print('OK')
 python -m bCNC.qt.app
 ```
 
-## Remaining Gaps (Tkinter → Qt)
+## Remaining Gap (Tkinter → Qt)
 
 All major UI features have been ported. The Qt app is fully tkinter-free at
-runtime. Remaining gap:
+runtime. One lower-priority item remains:
 
-- **Advanced toolbar/ribbon** — CNCRibbon with configurable groups (lower priority,
-  tracked in DEV-GUIDE.md).
+- **Advanced toolbar/ribbon** — CNCRibbon with configurable groups (tracked in
+  DEV-GUIDE.md).
 
 ## Documentation Files
 
