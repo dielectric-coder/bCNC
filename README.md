@@ -1,6 +1,9 @@
 bCNC
 ====
 
+**Original author:** Vasilis Vlachoudis ([@vlachoudis](https://github.com/vlachoudis)) — vvlachoudis@gmail.com
+**Forked from:** [vlachoudis/bCNC](https://github.com/vlachoudis/bCNC)
+
 GrblHAL (formerly GRBL) CNC command sender, autoleveler, g-code editor, digitizer, CAM
 and swiss army knife for all your CNC needs.
 
@@ -113,7 +116,7 @@ docking/layout system.
 editing G-code, probing, autoleveling, tool changes, and running jobs.
 See [USER-GUIDE.md](USER-GUIDE.md) for details.
 
-Not yet ported: Camera tab, Tools/Plugins page, web pendant controls.
+Not yet ported: Camera tab, web pendant controls.
 The original Tkinter UI remains fully functional and is the default.
 
 # Configuration
