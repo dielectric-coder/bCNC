@@ -3,6 +3,7 @@
 # Provides menu bar, toolbar, dock panels (control, terminal),
 # central canvas, and status bar.
 
+import os
 import sys
 
 from PySide6.QtCore import Qt, QTimer
@@ -14,7 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 import Utils
-from CNC import CNC
+from CNC import CNC, GCode
 
 from .signals import AppSignals
 from .canvas_widget import CanvasPanel
@@ -198,10 +199,25 @@ class MainWindow(QMainWindow):
         # File menu
         file_menu = menubar.addMenu("&File")
 
+        new_action = QAction("&New", self)
+        new_action.setShortcut(QKeySequence("Ctrl+N"))
+        new_action.triggered.connect(self._on_new_file)
+        file_menu.addAction(new_action)
+
         open_action = QAction("&Open...", self)
         open_action.setShortcut(QKeySequence.StandardKey.Open)
         open_action.triggered.connect(self._on_open_file)
         file_menu.addAction(open_action)
+
+        self._recent_menu = file_menu.addMenu("Open &Recent")
+        self._build_recent_menu()
+
+        import_action = QAction("&Import...", self)
+        import_action.setShortcut(QKeySequence("Ctrl+I"))
+        import_action.triggered.connect(self._on_import_file)
+        file_menu.addAction(import_action)
+
+        file_menu.addSeparator()
 
         save_action = QAction("&Save", self)
         save_action.setShortcut(QKeySequence.StandardKey.Save)
@@ -212,6 +228,12 @@ class MainWindow(QMainWindow):
         save_as_action.setShortcut(QKeySequence("Ctrl+Shift+S"))
         save_as_action.triggered.connect(self._on_save_as)
         file_menu.addAction(save_as_action)
+
+        file_menu.addSeparator()
+
+        reload_action = QAction("&Reload", self)
+        reload_action.triggered.connect(self._on_reload)
+        file_menu.addAction(reload_action)
 
         file_menu.addSeparator()
 
@@ -295,6 +317,10 @@ class MainWindow(QMainWindow):
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
 
+        new_action = QAction("New", self)
+        new_action.triggered.connect(self._on_new_file)
+        toolbar.addAction(new_action)
+
         open_action = QAction("Open", self)
         open_action.triggered.connect(self._on_open_file)
         toolbar.addAction(open_action)
@@ -316,17 +342,118 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     # File operations
     # ------------------------------------------------------------------
+    def _check_modified(self):
+        """Prompt user to save unsaved changes.
+
+        Returns True if the caller should abort (user cancelled).
+        """
+        if self.sender.gcode.isModified():
+            ans = QMessageBox.question(
+                self,
+                _("File modified"),
+                _("Gcode was modified do you want to save it first?"),
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.No
+                | QMessageBox.StandardButton.Cancel,
+            )
+            if ans == QMessageBox.StandardButton.Cancel:
+                return True
+            if ans == QMessageBox.StandardButton.Yes:
+                self.sender.saveAll()
+
+        if (not self.sender.gcode.probe.isEmpty()
+                and not self.sender.gcode.probe.saved):
+            ans = QMessageBox.question(
+                self,
+                _("Probe File modified"),
+                _("Probe was modified do you want to save it first?"),
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.No
+                | QMessageBox.StandardButton.Cancel,
+            )
+            if ans == QMessageBox.StandardButton.Cancel:
+                return True
+            if ans == QMessageBox.StandardButton.Yes:
+                if self.sender.gcode.probe.filename == "":
+                    self._on_save_as()
+                else:
+                    self.sender.gcode.probe.save()
+
+        return False
+
+    def _on_new_file(self):
+        if self.sender.running:
+            return
+        if self._check_modified():
+            return
+        self.sender.gcode.init()
+        self.sender.gcode.headerFooter()
+        self.editor_panel.fill()
+        self._on_draw()
+        self._update_title()
+
     def _on_open_file(self):
+        if self._check_modified():
+            return
         filename, _ = QFileDialog.getOpenFileName(
             self, "Open G-Code File", "", FILETYPES_FILTER)
         if filename:
             self.sender.load(filename)
+            Utils.addRecent(filename)
             self.signals.file_loaded.emit(filename)
             self._on_draw()
+            self._update_title()
+            self._build_recent_menu()
+            self._on_status_message(_("'{}' loaded").format(filename))
+
+    def _on_import_file(self):
+        filename, _ = QFileDialog.getOpenFileName(
+            self, _("Import Gcode/DXF file"), "",
+            "G-Code (*.ngc *.nc *.gcode);;"
+            "DXF (*.dxf);;"
+            "SVG (*.svg);;"
+            "All files (*)")
+        if not filename:
+            return
+        fn, ext = os.path.splitext(filename)
+        ext = ext.lower()
+        gcode = GCode()
+        if ext == ".dxf":
+            gcode.importDXF(filename)
+        elif ext == ".svg":
+            gcode.importSVG(filename)
+        else:
+            gcode.load(filename)
+        blocks = gcode.blocks
+        if not blocks:
+            return
+        sel = self.editor_panel.get_selected_blocks()
+        pos = sel[-1] if sel else None
+        undoinfo = self.sender.gcode.insBlocksUndo(pos, blocks)
+        self.sender.gcode.addUndo(undoinfo)
+        self.editor_panel.fill()
+        self._on_draw()
+
+    def _on_reload(self):
+        if not self.sender.gcode.filename:
+            return
+        if self._check_modified():
+            return
+        self.sender.load(self.sender.gcode.filename)
+        self.signals.file_loaded.emit(self.sender.gcode.filename)
+        self._on_draw()
+        self._update_title()
+        self._on_status_message(
+            _("'{}' reloaded").format(self.sender.gcode.filename))
 
     def _on_save_file(self):
         if self.sender.gcode.filename:
             self.sender.save(self.sender.gcode.filename)
+            Utils.addRecent(self.sender.gcode.filename)
+            self._update_title()
+            self._build_recent_menu()
+            self._on_status_message(
+                _("'{}' saved").format(self.sender.gcode.filename))
         else:
             self._on_save_as()
 
@@ -335,6 +462,51 @@ class MainWindow(QMainWindow):
             self, "Save G-Code File", "", FILETYPES_FILTER)
         if filename:
             self.sender.save(filename)
+            Utils.addRecent(filename)
+            self._update_title()
+            self._build_recent_menu()
+            self._on_status_message(_("'{}' saved").format(filename))
+
+    def _build_recent_menu(self):
+        """Rebuild the Open Recent submenu from config."""
+        self._recent_menu.clear()
+        for i in range(Utils._maxRecent):
+            filename = Utils.getRecent(i)
+            if filename is None:
+                break
+            label = f"{i + 1}  {os.path.basename(filename)}"
+            action = self._recent_menu.addAction(label)
+            action.setToolTip(filename)
+            idx = i
+            action.triggered.connect(
+                lambda checked=False, n=idx: self._on_load_recent(n))
+        if self._recent_menu.isEmpty():
+            no_recent = self._recent_menu.addAction("(no recent files)")
+            no_recent.setEnabled(False)
+
+    def _on_load_recent(self, index):
+        filename = Utils.getRecent(index)
+        if filename is None:
+            return
+        if self._check_modified():
+            return
+        self.sender.load(filename)
+        Utils.addRecent(filename)
+        self.signals.file_loaded.emit(filename)
+        self._on_draw()
+        self._update_title()
+        self._build_recent_menu()
+        self._on_status_message(_("'{}' loaded").format(filename))
+
+    def _update_title(self):
+        """Update window title to reflect current filename."""
+        fname = self.sender.gcode.filename
+        if fname:
+            self.setWindowTitle(
+                f"{Utils.__prg__} {Utils.__version__}: {fname} [Qt]")
+        else:
+            self.setWindowTitle(
+                f"{Utils.__prg__} {Utils.__version__} [Qt]")
 
     # ------------------------------------------------------------------
     # Execution
@@ -432,6 +604,9 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     def closeEvent(self, event):
         """Clean shutdown: save config, stop serial monitor, close connection."""
+        if self._check_modified():
+            event.ignore()
+            return
         self.autolevel_panel.saveConfig()
         self.serial_monitor.stop()
         self.sender.quit()
