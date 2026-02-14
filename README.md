@@ -97,6 +97,25 @@ please check first if that bug occurs even when running directly in python (with
 - Also read about all possible GRBL settings and make sure your setup is correct: https://github.com/gnea/grbl/wiki/Grbl-v1.1-Configuration
 - GrblHAL also has "Compatibility level" settings which have to be correctly configured during firmware compilation: https://github.com/grblHAL/core/wiki/Compatibility-level
 
+# Qt Interface (Experimental)
+
+bCNC includes an experimental Qt (PySide6) interface alongside the original Tkinter UI.
+The Qt version provides the same core functionality with a more modern look and improved
+docking/layout system.
+
+**Requirements:** PySide6 (`pip install PySide6`)
+
+**Launch:**
+
+    python -m bCNC.qt.app
+
+**Current status:** The Qt interface covers the main workflow — connecting, jogging,
+editing G-code, probing, autoleveling, tool changes, and running jobs.
+See [USER-GUIDE.md](USER-GUIDE.md) for details.
+
+Not yet ported: Camera tab, Tools/Plugins page, web pendant controls.
+The original Tkinter UI remains fully functional and is the default.
+
 # Configuration
 You can modify most of the parameters from the "CAM -> Config/Controller" page.
 You can also enable (up to) 6-axis mode in Config section,

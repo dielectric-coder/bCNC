@@ -2,6 +2,33 @@
 
 There are too much commits, so i've created this brief overview of new features in bCNC.
 
+## Qt Migration (in progress)
+
+Backend decoupling and experimental Qt (PySide6) interface.
+
+- Phase 1 — Decouple backend from Tkinter
+  - EventBus: toolkit-independent pub/sub signal system
+  - MachineState: observable wrapper around CNC.vars with thread-safe batch updates
+  - CommandDispatcher: extracted GCode operation routing from bmain.py
+  - FileManager: file I/O with EventBus notifications
+  - Clean Sender: removed tkinter imports, replaced widget refs with UI callbacks
+
+- Phase 2 — Extract portable canvas math
+  - ViewTransform: 3D projection, coordinate transforms, zoom/fit
+  - PathGeometry: grid, margins, axes, gantry geometry generation
+  - SceneGraph: drawing primitives, scene layers, toolkit-independent renderer
+
+- Phase 3 — Qt UI shell
+  - Application entry point (`python -m bCNC.qt.app`)
+  - Main window with dockable panels, menus, toolbar, status bar
+  - Canvas: QGraphicsView-based CNC visualization with zoom/pan
+  - Control panel: DRO, connection widget, jog controls
+  - Terminal: serial log with command entry and history
+  - Serial monitor: QTimer-based polling replacing Tk.after() loop
+  - Editor: QTreeView with block/line hierarchy, context menu, clipboard, undo/redo
+  - Probe panel: tabbed Probe/Autolevel/Tool with shared probe settings
+  - Bidirectional selection sync between canvas and editor
+
 ## 0.9.16
 - Breaking changes:
   - Python3.8 is the lowest supported version. Starting bCNC with any prior version will fail. [#1719](https://github.com/vlachoudis/bCNC/issues/1719)

@@ -1,0 +1,197 @@
+# bCNC Qt Interface — User Guide
+
+The Qt interface is an experimental alternative to the original Tkinter UI.
+It provides the same core CNC workflow with dockable panels and a tabbed layout.
+
+## Launching
+
+    pip install PySide6
+    python -m bCNC.qt.app
+
+The Qt app reads the same `~/.bCNC` configuration file as the Tkinter version.
+Settings are shared — you can switch between UIs without losing configuration.
+
+## Window Layout
+
+The main window has four areas:
+
+- **Central area** — Canvas showing toolpaths, probe data, and gantry position
+- **Left dock** — Control panel (DRO, connection, jog)
+- **Right dock** — Probe and Editor panels (tabbed)
+- **Bottom dock** — Terminal (serial log and command entry)
+
+All docks can be dragged, resized, or closed via the View menu.
+
+## Control Panel (Left Dock)
+
+### Connection
+- Select serial port, baud rate, and click **Connect**
+- Status indicator shows connection state (red/green)
+
+### DRO (Digital Readout)
+- Displays work coordinates (X, Y, Z) and machine coordinates
+- Values update in real time when connected
+
+### Jog
+- Arrow buttons for X/Y movement, Z+/Z- for vertical
+- Step size selector (0.1, 1.0, 10.0 mm)
+- **Home** — send homing cycle ($H)
+- **Unlock** — clear alarm ($X)
+- **Reset** — soft reset
+- **Home All** — home all axes
+
+## Canvas (Center)
+
+- **Scroll wheel** — zoom in/out
+- **Middle-click drag** — pan
+- **Click on path** — select block (highlights in editor)
+- **Ctrl+click** — add to selection
+- **Ctrl+0** or View > Fit to Content — fit all geometry
+
+The canvas shows:
+- Toolpaths colored by block (rapid=red, feed=blue/green)
+- Gantry position crosshair (updates when connected)
+- Probe data overlay (after autolevel scan)
+
+## Editor Panel (Right Dock)
+
+A tree view of G-code blocks and their lines.
+
+### Selection
+- Click a block to select it (highlights on canvas)
+- Ctrl+click to multi-select
+- Selection syncs bidirectionally with canvas
+
+### Editing
+- **Right-click context menu** — cut, copy, paste, delete, enable/disable
+- **Edit menu** — Undo (Ctrl+Z), Redo (Ctrl+Shift+Z)
+- Standard clipboard shortcuts: Ctrl+X, Ctrl+C, Ctrl+V
+
+### File Operations
+- **Ctrl+N** — New file
+- **Ctrl+O** — Open (supports .ngc, .nc, .gcode, .dxf, .svg, .stl)
+- **Ctrl+S** — Save
+- **Ctrl+Shift+S** — Save As
+- **Ctrl+I** — Import (merge into current file)
+- **File > Open Recent** — recent files list
+
+## Probe Panel (Right Dock)
+
+The Probe dock has shared settings at the top and four tabs below.
+
+### Shared Probe Settings (always visible)
+- **Fast Probe Feed** — feed rate for initial fast probe pass
+- **Probe Feed** — feed rate for final accurate probe
+- **TLO** — Tool Length Offset display, **Set** sends G43.1Z to machine
+- **Probe Command** — G38.2 through G38.5 selection
+
+### Probe Tab
+Single-direction probing and coordinate recording.
+
+**Probe section:**
+- Three direction fields (X, Y, Z) — enter distance to probe, leave empty to skip axis
+- **Auto goto** — automatically move to probe contact point after probing
+- **Goto** — rapid move to last probe coordinates (G53 G0)
+- **Probe** — sends probe command (e.g. G38.2 X-10 F50)
+- Result labels show last probe X/Y/Z coordinates
+
+**Center section:**
+- Enter ring/bore diameter, click **Center** to run a 4-touch center-finding sequence
+- Probes left/right in X, then forward/back in Y, moves to computed center
+
+**Record section:**
+- Record machine movements as G-code by jogging to positions:
+- **Z** checkbox — include Z coordinate in recorded moves
+- **RAPID** — record G0 move to current position
+- **FEED** — record G1 move to current position
+- **POINT** — record safe-Z lift, rapid to position, plunge to Z0
+- **CIRCLE** — record a full circle (G02) at current position with given radius
+- **FINISH** — append M5, safe-Z retract, M2 (end program)
+
+### Autolevel Tab
+Grid-based Z surface scanning for PCB milling and similar work.
+
+**Grid Configuration:**
+- X/Y min, max, step (computed), N (number of points)
+- Z min (probe depth limit), Z max (retract height)
+
+**Actions:**
+- **Get Margins** — fill grid bounds from loaded G-code file extents
+- **Scan Margins** — probe the four corners to verify grid limits
+- **Set Zero** — set current XY as autolevel Z reference
+- **Clear** — delete all probe data
+- **Autolevel** — modify loaded G-code to follow the probed surface
+- **Scan** — run the full grid probe sequence
+
+Status label shows scan progress (e.g. "15 / 25 points").
+
+### Camera Tab
+Placeholder — not yet implemented.
+
+### Tool Tab
+Manual tool change management for multi-tool jobs.
+
+**Policy** — how M6 tool change commands are handled:
+- Send M6 commands (pass through to controller)
+- Ignore M6 commands
+- Manual Tool Change (WCS) — pause, change, re-probe with work coordinates
+- Manual Tool Change (TLO) — pause, change, re-probe with tool length offset
+- Manual Tool Change (NoProbe) — pause for manual change, no re-probing
+
+**Pause** — when to pause during tool change:
+- ONLY before probing
+- BEFORE & AFTER probing
+
+**Positions:**
+- **Change** (MX, MY, MZ) — machine position to move to for tool changes
+- **Probe** (MX, MY, MZ) — machine position of the tool length probe
+- **Get** buttons read current machine position into the fields
+
+**Distance** — how far to probe downward when measuring tool length
+
+**Calibrate** — runs a multi-speed probe sequence:
+1. Move to tool change Z, then change XY, then probe XY, then probe Z
+2. Fast probe down, retract, repeat with decreasing feed rates
+3. Final slow probe, record tool height and machine Z
+4. Return to tool change position
+
+**Change** — run the full tool change cycle (delegates to CNC.toolChange)
+
+## Terminal Panel (Bottom Dock)
+
+- **Buffer** — shows serial buffer status
+- **Terminal log** — color-coded serial traffic (sent/received/ok/error)
+- **Command entry** — type G-code or macros (RESET, HOME, RUN, etc.)
+- Up/Down arrow keys for command history
+
+## Running a Job
+
+1. Open a G-code file (Ctrl+O)
+2. Connect to your machine (Control panel > Connect)
+3. Optionally run autolevel scan (Probe panel > Autolevel tab)
+4. Click **Run** in the toolbar (or toolbar button)
+5. Progress bar appears in status bar during execution
+6. **Pause** / **Stop** to control execution
+
+## Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| Ctrl+N | New file |
+| Ctrl+O | Open file |
+| Ctrl+S | Save |
+| Ctrl+Shift+S | Save As |
+| Ctrl+I | Import file |
+| Ctrl+Z | Undo |
+| Ctrl+Shift+Z | Redo |
+| Ctrl+X | Cut |
+| Ctrl+C | Copy |
+| Ctrl+V | Paste |
+| Ctrl+0 | Fit canvas to content |
+| Ctrl+Q | Quit |
+
+## Configuration
+
+All settings persist to `~/.bCNC` (INI format), shared with the Tkinter UI.
+Probe settings are in the `[Probe]` section, connection in `[Connection]`, etc.
+On close, the Qt app saves current panel values to the config file.
