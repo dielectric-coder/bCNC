@@ -60,6 +60,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(
             f"{Utils.__prg__} {Utils.__version__} [Qt]")
         self.resize(1200, 800)
+        self.setContentsMargins(4, 0, 4, 0)
 
         # Wire Sender UI callbacks
         sender._ui_set_status = lambda msg: self.signals.status_message.emit(msg)
@@ -70,6 +71,7 @@ class MainWindow(QMainWindow):
 
         # --- Central widget: Canvas ---
         self.canvas_panel = CanvasPanel(self.signals)
+        self.canvas_panel.setMinimumWidth(500)
         self.setCentralWidget(self.canvas_panel)
 
         # --- Dock: Control panel (left) ---
