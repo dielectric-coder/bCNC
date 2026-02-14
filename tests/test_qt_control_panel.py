@@ -1,4 +1,4 @@
-"""Tests for Qt control panel: macro buttons and DRO font customization."""
+"""Tests for Qt control panel widgets: DRO, jog, state, macros."""
 
 import os
 import sys
@@ -37,13 +37,16 @@ from PySide6.QtGui import QFont  # noqa: E402
 # Single QApplication for all tests
 app = QApplication.instance() or QApplication(sys.argv)
 
-from Sender import Sender  # noqa: E402
+from CNC import CNC  # noqa: E402
+from Sender import Sender, CONNECTED, NOT_CONNECTED  # noqa: E402
 from qt.control_panel import (  # noqa: E402
     _config_font,
     MacroButtonsWidget,
     MacroEditDialog,
     ControlPanel,
     DROWidget,
+    JogWidget,
+    StateWidget,
 )
 from qt.signals import AppSignals  # noqa: E402
 
@@ -252,6 +255,182 @@ class TestMacroEditDialog(unittest.TestCase):
         self.assertEqual(Utils.config.get("Buttons", "name.7"), "Saved")
         self.assertEqual(Utils.config.get("Buttons", "tooltip.7"), "A tooltip")
         self.assertEqual(Utils.config.get("Buttons", "command.7"), "G0 X10\nG0 Y20")
+
+
+class TestJogWidget(unittest.TestCase):
+    """Test JogWidget jog command generation."""
+
+    def setUp(self):
+        self.sender = Sender()
+
+    def test_jog_calls_sender_jog(self):
+        """_jog() delegates to sender.jog() with axis and step."""
+        from unittest.mock import patch
+        widget = JogWidget(self.sender)
+        widget._step_spin.setValue(5.0)
+        with patch.object(self.sender, "jog") as mock_jog:
+            widget._jog("X", 1)
+            mock_jog.assert_called_once_with("X5.000")
+
+    def test_jog_negative_direction(self):
+        """Negative direction produces negative step value."""
+        from unittest.mock import patch
+        widget = JogWidget(self.sender)
+        widget._step_spin.setValue(2.5)
+        with patch.object(self.sender, "jog") as mock_jog:
+            widget._jog("Y", -1)
+            mock_jog.assert_called_once_with("Y-2.500")
+
+    def test_jog_small_step(self):
+        """Tiny step values are formatted correctly."""
+        from unittest.mock import patch
+        widget = JogWidget(self.sender)
+        widget._step_spin.setValue(0.001)
+        with patch.object(self.sender, "jog") as mock_jog:
+            widget._jog("Z", 1)
+            mock_jog.assert_called_once_with("Z0.001")
+
+    def test_quick_step_buttons_set_value(self):
+        """Quick step buttons update the step spinbox."""
+        widget = JogWidget(self.sender)
+        widget._step_spin.setValue(1.0)
+        # Simulate clicking the 10.0 quick-step button
+        widget._step_spin.setValue(10.0)
+        self.assertAlmostEqual(widget._step_spin.value(), 10.0)
+
+    def test_home_calls_sender(self):
+        """Home button delegates to sender.home()."""
+        from unittest.mock import patch
+        widget = JogWidget(self.sender)
+        with patch.object(self.sender, "home") as mock_home:
+            widget._home()
+            mock_home.assert_called_once()
+
+
+class TestStateWidget(unittest.TestCase):
+    """Test StateWidget override controls and state display."""
+
+    def setUp(self):
+        self.sender = Sender()
+        self._saved_vars = dict(CNC.vars)
+
+    def tearDown(self):
+        CNC.vars.update(self._saved_vars)
+
+    def test_update_state_updates_labels(self):
+        """update_state() reads CNC.vars and updates label text."""
+        widget = StateWidget(self.sender)
+        CNC.vars["curfeed"] = 500.0
+        CNC.vars["curspindle"] = 12000.0
+        CNC.vars["OvFeed"] = 110
+        CNC.vars["OvSpindle"] = 90
+        CNC.vars["OvRapid"] = 50
+        CNC.vars["spindle"] = "M5"
+        widget.update_state("Idle", "lime")
+        self.assertEqual(widget._feed_label.text(), "500")
+        self.assertEqual(widget._spindle_label.text(), "12000")
+        self.assertEqual(widget._ov_feed_label.text(), "110%")
+        self.assertEqual(widget._ov_spindle_label.text(), "90%")
+        self.assertEqual(widget._ov_rapid_label.text(), "50%")
+
+    def test_adjust_override_clamps_high(self):
+        """Override cannot exceed 200%."""
+        widget = StateWidget(self.sender)
+        CNC.vars["OvFeed"] = 195
+        widget._adjust_override("_OvFeed", "OvFeed", 10)
+        self.assertEqual(CNC.vars["_OvFeed"], 200)
+        self.assertTrue(CNC.vars["_OvChanged"])
+
+    def test_adjust_override_clamps_low(self):
+        """Override cannot go below 10%."""
+        widget = StateWidget(self.sender)
+        CNC.vars["OvFeed"] = 15
+        widget._adjust_override("_OvFeed", "OvFeed", -10)
+        self.assertEqual(CNC.vars["_OvFeed"], 10)
+
+    def test_cycle_rapid(self):
+        """Rapid override cycles 100 → 50 → 25 → 100."""
+        widget = StateWidget(self.sender)
+        CNC.vars["OvRapid"] = 100
+        widget._cycle_rapid()
+        self.assertEqual(CNC.vars["_OvRapid"], 50)
+
+        CNC.vars["OvRapid"] = 50
+        widget._cycle_rapid()
+        self.assertEqual(CNC.vars["_OvRapid"], 25)
+
+        CNC.vars["OvRapid"] = 25
+        widget._cycle_rapid()
+        self.assertEqual(CNC.vars["_OvRapid"], 100)
+
+    def test_reset_overrides(self):
+        """Reset sets all overrides to 100%."""
+        widget = StateWidget(self.sender)
+        CNC.vars["_OvFeed"] = 150
+        CNC.vars["_OvSpindle"] = 80
+        CNC.vars["_OvRapid"] = 50
+        widget._reset_overrides()
+        self.assertEqual(CNC.vars["_OvFeed"], 100)
+        self.assertEqual(CNC.vars["_OvSpindle"], 100)
+        self.assertEqual(CNC.vars["_OvRapid"], 100)
+        self.assertTrue(CNC.vars["_OvChanged"])
+
+    def test_send_guarded_blocks_when_not_connected(self):
+        """_send_guarded() does not send when machine is not connected."""
+        from unittest.mock import patch
+        widget = StateWidget(self.sender)
+        CNC.vars["state"] = NOT_CONNECTED
+        with patch.object(self.sender, "sendGCode") as mock_send:
+            widget._send_guarded("M8")
+            mock_send.assert_not_called()
+
+    def test_send_guarded_sends_when_idle(self):
+        """_send_guarded() sends when machine is in Idle state."""
+        from unittest.mock import patch
+        widget = StateWidget(self.sender)
+        CNC.vars["state"] = "Idle"
+        with patch.object(self.sender, "sendGCode") as mock_send:
+            widget._send_guarded("M8")
+            mock_send.assert_called_once_with("M8")
+
+    def test_toggle_spindle_off(self):
+        """Toggle spindle sends M5 when spindle is running."""
+        from unittest.mock import patch
+        widget = StateWidget(self.sender)
+        CNC.vars["state"] = "Idle"
+        CNC.vars["spindle"] = "M3"
+        with patch.object(self.sender, "sendGCode") as mock_send:
+            widget._toggle_spindle()
+            mock_send.assert_called_once_with("M5")
+
+    def test_toggle_spindle_on(self):
+        """Toggle spindle sends M3 with RPM when spindle is off."""
+        from unittest.mock import patch
+        widget = StateWidget(self.sender)
+        CNC.vars["state"] = "Idle"
+        CNC.vars["spindle"] = "M5"
+        CNC.vars["rpm"] = 8000
+        with patch.object(self.sender, "sendGCode") as mock_send:
+            widget._toggle_spindle()
+            mock_send.assert_called_once_with("M3 S8000")
+
+    def test_spindle_button_reflects_state(self):
+        """Spindle button text updates based on CNC.vars."""
+        widget = StateWidget(self.sender)
+        CNC.vars["curfeed"] = 0
+        CNC.vars["curspindle"] = 0
+        CNC.vars["OvFeed"] = 100
+        CNC.vars["OvSpindle"] = 100
+        CNC.vars["OvRapid"] = 100
+        CNC.vars["spindle"] = "M3"
+        widget.update_state("Run", "green")
+        self.assertEqual(widget._spindle_btn.text(), "Spindle OFF")
+        self.assertTrue(widget._spindle_btn.isChecked())
+
+        CNC.vars["spindle"] = "M5"
+        widget.update_state("Idle", "lime")
+        self.assertEqual(widget._spindle_btn.text(), "Spindle ON")
+        self.assertFalse(widget._spindle_btn.isChecked())
 
 
 class TestControlPanelIntegration(unittest.TestCase):

@@ -3,6 +3,8 @@
 # Replaces parts of ControlPage with a compact QWidget providing
 # digital readout (DRO), connection controls, and jog buttons.
 
+import logging
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
@@ -43,7 +45,7 @@ def _config_font(key, default_family="Sans", default_size=12, default_bold=False
                 elif p.lower() == "italic":
                     italic = True
     except Exception:
-        pass
+        logging.debug("Failed to load font config for '%s', using defaults", key)
     weight = QFont.Weight.Bold if bold else QFont.Weight.Normal
     return QFont(family, size, weight, italic)
 
@@ -70,18 +72,21 @@ class DROWidget(QWidget):
 
         self._work_labels = {}
         self._mach_labels = {}
-        axes = ["X", "Y", "Z"]
-        colors = {"X": "red", "Y": "green", "Z": "blue"}
+        colors = {
+            "X": "red", "Y": "green", "Z": "blue",
+            "A": "#FF8C00", "B": "#00CED1", "C": "#DA70D6",
+        }
+        axes = list("XYZ")
+        if getattr(CNC, "enable6axisopt", False):
+            axes += list("ABC")
 
         for row, axis in enumerate(axes, start=1):
-            # Axis name
             name_lbl = QLabel(axis)
             name_lbl.setFont(wpos_font)
             name_lbl.setStyleSheet(f"color: {colors[axis]};")
             name_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(name_lbl, row, 0)
 
-            # Work position
             w_lbl = QLabel("0.000")
             w_lbl.setFont(wpos_font)
             w_lbl.setAlignment(Qt.AlignmentFlag.AlignRight
@@ -90,7 +95,6 @@ class DROWidget(QWidget):
             layout.addWidget(w_lbl, row, 1)
             self._work_labels[axis] = w_lbl
 
-            # Machine position
             m_lbl = QLabel("0.000")
             m_lbl.setFont(mpos_font)
             m_lbl.setStyleSheet("color: gray;")
@@ -99,34 +103,6 @@ class DROWidget(QWidget):
             m_lbl.setMinimumWidth(100)
             layout.addWidget(m_lbl, row, 2)
             self._mach_labels[axis] = m_lbl
-
-        # ABC axes (conditional on 6-axis config)
-        if getattr(CNC, "enable6axisopt", False):
-            abc_axes = ["A", "B", "C"]
-            abc_colors = {"A": "#FF8C00", "B": "#00CED1", "C": "#DA70D6"}
-            for row, axis in enumerate(abc_axes, start=len(axes) + 1):
-                name_lbl = QLabel(axis)
-                name_lbl.setFont(wpos_font)
-                name_lbl.setStyleSheet(f"color: {abc_colors[axis]};")
-                name_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-                layout.addWidget(name_lbl, row, 0)
-
-                w_lbl = QLabel("0.000")
-                w_lbl.setFont(wpos_font)
-                w_lbl.setAlignment(Qt.AlignmentFlag.AlignRight
-                                   | Qt.AlignmentFlag.AlignVCenter)
-                w_lbl.setMinimumWidth(100)
-                layout.addWidget(w_lbl, row, 1)
-                self._work_labels[axis] = w_lbl
-
-                m_lbl = QLabel("0.000")
-                m_lbl.setFont(mpos_font)
-                m_lbl.setStyleSheet("color: gray;")
-                m_lbl.setAlignment(Qt.AlignmentFlag.AlignRight
-                                   | Qt.AlignmentFlag.AlignVCenter)
-                m_lbl.setMinimumWidth(100)
-                layout.addWidget(m_lbl, row, 2)
-                self._mach_labels[axis] = m_lbl
 
     def update_position(self, wx, wy, wz, mx, my, mz):
         """Update displayed coordinates."""
@@ -303,11 +279,7 @@ class JogWidget(QWidget):
 
     def _jog(self, axis, direction):
         step = self._step_spin.value() * direction
-        cmd = f"$J=G91 {axis}{step:.3f} F{self._feed_rate()}"
-        self.sender.sendGCode(cmd)
-
-    def _feed_rate(self):
-        return max(100.0, self._step_spin.value() * 60.0)
+        self.sender.jog(f"{axis}{step:.3f}")
 
     def _jog_xp(self): self._jog("X", 1)
     def _jog_xn(self): self._jog("X", -1)
@@ -650,7 +622,7 @@ class ControlPanel(QWidget):
     def _select_wcs(self, wcs):
         """Switch to the given workspace coordinate system."""
         self.sender.sendGCode(wcs)
-        self.sender.mcontrol.viewState()
+        self.sender.viewState()
 
     def _update_wcs(self):
         """Highlight the active WCS button from CNC.vars."""
@@ -662,4 +634,4 @@ class ControlPanel(QWidget):
         """Zero a single axis via G10 L20."""
         args = {a: None for a in "xyzabc"}
         args[axis.lower()] = "0"
-        self.sender.mcontrol._wcsSet(**args)
+        self.sender.wcsSet(**args)

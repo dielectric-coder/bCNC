@@ -620,6 +620,12 @@ class Sender:
     def goto(self, x=None, y=None, z=None):
         self.mcontrol.goto(x, y, z)
 
+    def jog(self, direction):
+        self.mcontrol.jog(direction)
+
+    def wcsSet(self, x=None, y=None, z=None, a=None, b=None, c=None):
+        self.mcontrol._wcsSet(x, y, z, a, b, c)
+
     def _wcsSet(self, x, y, z):
         self.mcontrol._wcsSet(x, y, z)  # FIXME Duplicate with ControlPage
 
