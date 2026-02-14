@@ -28,6 +28,9 @@ Backend decoupling and experimental Qt (PySide6) interface.
   - Editor: QTreeView with block/line hierarchy, context menu, clipboard, undo/redo
   - Probe panel: tabbed Probe/Autolevel/Tool with shared probe settings
   - Bidirectional selection sync between canvas and editor
+  - Tools panel: full plugin system, tool database (Material/EndMill/Stock),
+    CAM operations (Cut/Profile/Pocket/Drill/Tabs), and all 42+ external plugins
+    with dynamic form builder and AppProxy for plugin compatibility
 
 ## 0.9.16
 - Breaking changes:
