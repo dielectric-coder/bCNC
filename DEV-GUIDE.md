@@ -219,7 +219,7 @@ Special line prefixes in runLines sequences:
 | `signals.py` | `AppSignals` | 40+ Qt signals replacing Tk virtual events |
 | `main_window.py` | `MainWindow` | Window, docks, menus, toolbar, file ops |
 | `canvas_widget.py` | `CNCGraphicsView`, `CNCScene`, `CanvasPanel` | Toolpath visualization |
-| `control_panel.py` | `DROWidget`, `ConnectionWidget`, `JogWidget`, `ControlPanel` | Machine control |
+| `control_panel.py` | `DROWidget`, `ConnectionWidget`, `JogWidget`, `StateWidget`, `ControlPanel` | Machine control |
 | `terminal_panel.py` | `TerminalPanel` | Serial log and command entry |
 | `serial_monitor.py` | `SerialMonitor` | QTimer bridge: Sender queues → signals |
 | `editor_model.py` | `GCodeTreeModel` | QAbstractItemModel for block/line tree |
@@ -235,13 +235,9 @@ Special line prefixes in runLines sequences:
 
 ## What's Not Yet Ported
 
-### Medium Priority
-- **Spindle/state display** — detailed state frame with spindle speed/override controls
-
 ### Lower Priority
 - **Advanced toolbar/ribbon** — Tkinter uses CNCRibbon with configurable groups
 - **User-configurable buttons** — custom macro buttons
-- **Workspace selection** — G54..G59 quick-switch UI
 - **DRO font customization** — configurable fonts from config
 
 ### Not Needed

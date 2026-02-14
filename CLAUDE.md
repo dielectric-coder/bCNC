@@ -137,8 +137,6 @@ python -m bCNC.qt.app
 
 ## Remaining Gaps (Tkinter → Qt)
 
-- **Spindle/state display** — detailed state frame with spindle speed/override
-- **Workspace selection** — G54..G59 quick-switch UI
 - **User-configurable macro buttons**
 - **DRO font customization**
 

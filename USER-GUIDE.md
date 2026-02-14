@@ -31,9 +31,36 @@ All docks can be dragged, resized, or closed via the View menu.
 ### DRO (Digital Readout)
 - Displays work coordinates (X, Y, Z) and machine coordinates
 - Values update in real time when connected
+- **WCS selector** (G54-G59) — row of toggle buttons to switch workspace
+  coordinate systems. The active WCS is highlighted automatically when the
+  machine reports its parser state. Clicking a button sends the WCS command
+  and refreshes the DRO.
 - **Zero buttons** (X=0, Y=0, Z=0) — zero individual axes via G10 L20
 - When 6-axis mode is enabled (`enable6axisopt=1` in config), A/B/C axes
   are shown with additional zero buttons (A=0, B=0, C=0)
+
+### Spindle / Overrides
+Real-time machine state and override controls.
+
+**Readouts (updated live from GRBL status reports):**
+- **Feed** — current feed rate (mm/min) and feed override percentage
+- **Spindle** — current spindle speed (RPM) and spindle override percentage
+- **Rapid** — rapid override percentage
+
+**Override buttons:**
+- **F-10 / F+10** — decrease/increase feed override by 10% (range 10-200%)
+- **S-10 / S+10** — decrease/increase spindle override by 10% (range 10-200%)
+- **Rapid** — cycle rapid override: 100% → 50% → 25% → 100%
+- **Reset** — reset all overrides to 100%
+
+**Spindle and coolant:**
+- **Spindle ON/OFF** — toggle spindle (sends M3 S{rpm} or M5)
+- **Flood** — turn on flood coolant (M8)
+- **Mist** — turn on mist coolant (M7)
+- **Cool Off** — turn off all coolant (M9)
+
+All spindle and coolant commands are guarded — they are ignored when the
+machine is not connected or not yet homed.
 
 ### Jog
 - Arrow buttons for X/Y movement, Z+/Z- for vertical

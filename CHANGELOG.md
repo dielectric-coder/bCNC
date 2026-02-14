@@ -23,6 +23,12 @@ Backend decoupling and experimental Qt (PySide6) interface.
   - Main window with dockable panels, menus, toolbar, status bar
   - Canvas: QGraphicsView-based CNC visualization with zoom/pan
   - Control panel: DRO, connection widget, jog controls, per-axis zero buttons
+  - Spindle / Overrides panel: real-time feed rate and spindle RPM display,
+    feed/spindle/rapid override controls (+/-10%, rapid cycle 100/50/25%, reset),
+    spindle on/off toggle, flood/mist/coolant-off buttons — all guarded against
+    sending commands when not connected
+  - Workspace selection: G54-G59 quick-switch buttons in the Position group,
+    with live highlight tracking via `$G` parser state updates
   - 6-axis (ABC) support: conditional DRO rows, jog buttons, and zero buttons
     when `enable6axisopt` is enabled in config (matches Tkinter 6-axis mode)
   - Terminal: serial log with command entry and history

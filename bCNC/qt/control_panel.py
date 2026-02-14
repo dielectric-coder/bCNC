@@ -12,8 +12,8 @@ from PySide6.QtWidgets import (
 )
 
 import Utils
-from CNC import CNC
-from Sender import NOT_CONNECTED, STATECOLOR
+from CNC import CNC, WCS
+from Sender import CONNECTED, NOT_CONNECTED, STATECOLOR
 
 
 # Jog step sizes (mm)
@@ -288,6 +288,135 @@ class JogWidget(QWidget):
     def _home(self): self.sender.home()
 
 
+class StateWidget(QWidget):
+    """Real-time feed/spindle display and override controls."""
+
+    def __init__(self, sender, parent=None):
+        super().__init__(parent)
+        self.sender = sender
+
+        layout = QGridLayout(self)
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(4)
+
+        # Row 0-2: Feed / Spindle / Rapid readouts with override %
+        row_defs = [
+            ("Feed", "_feed_label", "_ov_feed_label"),
+            ("Spindle", "_spindle_label", "_ov_spindle_label"),
+            ("Rapid", None, "_ov_rapid_label"),
+        ]
+        for row, (name, val_attr, ov_attr) in enumerate(row_defs):
+            layout.addWidget(QLabel(name), row, 0)
+            if val_attr:
+                lbl = QLabel("0")
+                lbl.setAlignment(Qt.AlignmentFlag.AlignRight
+                                 | Qt.AlignmentFlag.AlignVCenter)
+                lbl.setMinimumWidth(60)
+                layout.addWidget(lbl, row, 1)
+                setattr(self, val_attr, lbl)
+            layout.addWidget(QLabel("Ov"), row, 2)
+            ov_lbl = QLabel("100%")
+            ov_lbl.setAlignment(Qt.AlignmentFlag.AlignRight
+                                | Qt.AlignmentFlag.AlignVCenter)
+            ov_lbl.setMinimumWidth(45)
+            layout.addWidget(ov_lbl, row, 3)
+            setattr(self, ov_attr, ov_lbl)
+
+        # Row 3: Override adjustment buttons
+        ov_btn_layout = QHBoxLayout()
+        for label, callback in [
+            ("F-10", lambda: self._adjust_override("_OvFeed", "OvFeed", -10)),
+            ("F+10", lambda: self._adjust_override("_OvFeed", "OvFeed", 10)),
+            ("S-10", lambda: self._adjust_override("_OvSpindle", "OvSpindle", -10)),
+            ("S+10", lambda: self._adjust_override("_OvSpindle", "OvSpindle", 10)),
+            ("Rapid", self._cycle_rapid),
+            ("Reset", self._reset_overrides),
+        ]:
+            btn = QPushButton(label)
+            btn.setMaximumHeight(28)
+            btn.clicked.connect(callback)
+            ov_btn_layout.addWidget(btn)
+        layout.addLayout(ov_btn_layout, 3, 0, 1, 4)
+
+        # Row 4: Spindle + Coolant controls
+        sc_layout = QHBoxLayout()
+        self._spindle_btn = QPushButton("Spindle ON")
+        self._spindle_btn.setCheckable(True)
+        self._spindle_btn.clicked.connect(self._toggle_spindle)
+        sc_layout.addWidget(self._spindle_btn)
+
+        flood_btn = QPushButton("Flood")
+        flood_btn.clicked.connect(lambda: self._send_guarded("M8"))
+        sc_layout.addWidget(flood_btn)
+
+        mist_btn = QPushButton("Mist")
+        mist_btn.clicked.connect(lambda: self._send_guarded("M7"))
+        sc_layout.addWidget(mist_btn)
+
+        cool_off_btn = QPushButton("Cool Off")
+        cool_off_btn.clicked.connect(lambda: self._send_guarded("M9"))
+        sc_layout.addWidget(cool_off_btn)
+
+        layout.addLayout(sc_layout, 4, 0, 1, 4)
+
+    def update_state(self, state, color):
+        """Update all readout labels from CNC.vars."""
+        self._feed_label.setText(f"{CNC.vars['curfeed']:.0f}")
+        self._spindle_label.setText(f"{CNC.vars['curspindle']:.0f}")
+        self._ov_feed_label.setText(f"{CNC.vars['OvFeed']}%")
+        self._ov_spindle_label.setText(f"{CNC.vars['OvSpindle']}%")
+        self._ov_rapid_label.setText(f"{CNC.vars['OvRapid']}%")
+        # Update spindle button state
+        is_on = CNC.vars.get("spindle", "M5") in ("M3", "M4")
+        self._spindle_btn.setChecked(is_on)
+        self._spindle_btn.setText("Spindle OFF" if is_on else "Spindle ON")
+
+    def _adjust_override(self, target_key, current_key, delta):
+        """Adjust an override target by delta, clamped 10-200."""
+        current = CNC.vars.get(current_key, 100)
+        CNC.vars[target_key] = max(10, min(200, current + delta))
+        CNC.vars["_OvChanged"] = True
+
+    def _cycle_rapid(self):
+        """Cycle rapid override: 100 → 50 → 25 → 100."""
+        current = CNC.vars.get("OvRapid", 100)
+        if current >= 100:
+            CNC.vars["_OvRapid"] = 50
+        elif current >= 50:
+            CNC.vars["_OvRapid"] = 25
+        else:
+            CNC.vars["_OvRapid"] = 100
+        CNC.vars["_OvChanged"] = True
+
+    def _reset_overrides(self):
+        """Reset all overrides to 100%."""
+        CNC.vars["_OvFeed"] = 100
+        CNC.vars["_OvRapid"] = 100
+        CNC.vars["_OvSpindle"] = 100
+        CNC.vars["_OvChanged"] = True
+
+    def _is_connected_and_ready(self):
+        """Check if machine is connected and past initial state."""
+        state = CNC.vars.get("state", NOT_CONNECTED)
+        return state not in (NOT_CONNECTED, CONNECTED)
+
+    def _send_guarded(self, gcode):
+        """Send G-code only if connected and ready."""
+        if self._is_connected_and_ready():
+            self.sender.sendGCode(gcode)
+
+    def _toggle_spindle(self):
+        """Toggle spindle on/off."""
+        if not self._is_connected_and_ready():
+            self._spindle_btn.setChecked(False)
+            return
+        if CNC.vars.get("spindle", "M5") in ("M3", "M4"):
+            self.sender.sendGCode("M5")
+        else:
+            rpm = CNC.vars.get("rpm", 0) or CNC.vars.get("curspindle", 0) or 1000
+            self.sender.sendGCode(f"M3 S{rpm}")
+
+
 class ControlPanel(QWidget):
     """Combined control panel with DRO, connection, and jog widgets."""
 
@@ -313,6 +442,20 @@ class ControlPanel(QWidget):
         dro_layout.setContentsMargins(2, 2, 2, 2)
         self.dro = DROWidget()
         dro_layout.addWidget(self.dro)
+
+        # WCS selector (G54-G59)
+        wcs_layout = QHBoxLayout()
+        self._wcs_buttons = []
+        for wcs in WCS:
+            btn = QPushButton(wcs)
+            btn.setCheckable(True)
+            btn.setMaximumWidth(50)
+            btn.clicked.connect(
+                lambda checked, w=wcs: self._select_wcs(w))
+            wcs_layout.addWidget(btn)
+            self._wcs_buttons.append(btn)
+        self._wcs_buttons[0].setChecked(True)  # G54 default
+        dro_layout.addLayout(wcs_layout)
 
         # Zero-axis buttons
         zero_layout = QHBoxLayout()
@@ -341,6 +484,14 @@ class ControlPanel(QWidget):
         jog_layout.addWidget(self.jog)
         layout.addWidget(jog_group)
 
+        # State group (spindle / overrides)
+        state_group = QGroupBox("Spindle / Overrides")
+        state_layout = QVBoxLayout(state_group)
+        state_layout.setContentsMargins(2, 2, 2, 2)
+        self.state_widget = StateWidget(sender)
+        state_layout.addWidget(self.state_widget)
+        layout.addWidget(state_group)
+
         # Run controls
         run_group = QGroupBox("Execution")
         run_layout = QHBoxLayout(run_group)
@@ -359,7 +510,20 @@ class ControlPanel(QWidget):
 
         # Wire signals
         signals.state_changed.connect(self.connection.update_state)
+        signals.state_changed.connect(self.state_widget.update_state)
         signals.position_updated.connect(self.dro.update_position)
+        signals.g_state_updated.connect(self._update_wcs)
+
+    def _select_wcs(self, wcs):
+        """Switch to the given workspace coordinate system."""
+        self.sender.sendGCode(wcs)
+        self.sender.mcontrol.viewState()
+
+    def _update_wcs(self):
+        """Highlight the active WCS button from CNC.vars."""
+        active = CNC.vars.get("WCS", "G54")
+        for btn in self._wcs_buttons:
+            btn.setChecked(btn.text() == active)
 
     def _zero_axis(self, axis):
         """Zero a single axis via G10 L20."""
