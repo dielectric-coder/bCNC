@@ -24,6 +24,8 @@ from .terminal_panel import TerminalPanel
 from .serial_monitor import SerialMonitor
 from .probe_panel import ProbePanel
 from .editor_panel import EditorPanel
+from .tools_manager import ToolsManager
+from .tools_panel import ToolsPanel
 
 
 FILETYPES_FILTER = (
@@ -106,6 +108,22 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea,
                            self.editor_dock)
         self.tabifyDockWidget(self.probe_dock, self.editor_dock)
+        self.editor_dock.raise_()
+
+        # --- Dock: Tools panel (right, tabified with editor) ---
+        self.tools_manager = ToolsManager(sender.gcode)
+        self.tools_manager.loadConfig()
+
+        self.tools_dock = QDockWidget("Tools", self)
+        self.tools_dock.setAllowedAreas(
+            Qt.DockWidgetArea.LeftDockWidgetArea
+            | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.tools_panel = ToolsPanel(
+            sender, self.signals, self.tools_manager, self.editor_panel)
+        self.tools_dock.setWidget(self.tools_panel)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea,
+                           self.tools_dock)
+        self.tabifyDockWidget(self.editor_dock, self.tools_dock)
         self.editor_dock.raise_()
 
         # --- Status bar ---
@@ -271,6 +289,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.terminal_dock.toggleViewAction())
         view_menu.addAction(self.probe_dock.toggleViewAction())
         view_menu.addAction(self.editor_dock.toggleViewAction())
+        view_menu.addAction(self.tools_dock.toggleViewAction())
 
         view_menu.addSeparator()
 
@@ -597,6 +616,7 @@ class MainWindow(QMainWindow):
         self.control_panel.setEnabled(enabled)
         self.probe_panel.setEnabled(enabled)
         self.editor_panel.setEnabled(enabled)
+        self.tools_panel.setEnabled(enabled)
         self.menuBar().setEnabled(enabled)
 
     # ------------------------------------------------------------------
@@ -607,6 +627,7 @@ class MainWindow(QMainWindow):
         if self._check_modified():
             event.ignore()
             return
+        self.tools_panel.saveConfig()
         self.probe_panel.saveConfig()
         self.serial_monitor.stop()
         self.sender.quit()
