@@ -3,15 +3,16 @@
 # Provides menu bar, toolbar, dock panels (control, terminal),
 # central canvas, and status bar.
 
+import base64
 import os
 import socket
 import sys
 import webbrowser
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QByteArray, QTimer
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
-    QMainWindow, QDockWidget, QStatusBar,
+    QMainWindow, QDockWidget, QStatusBar, QTabWidget,
     QLabel, QProgressBar, QMenuBar, QToolBar,
     QFileDialog, QMessageBox,
 )
@@ -72,7 +73,7 @@ class MainWindow(QMainWindow):
         # --- Dock tabs on top ---
         self.setTabPosition(
             Qt.DockWidgetArea.LeftDockWidgetArea,
-            QMainWindow.DockWidgetTabPosition.North)
+            QTabWidget.TabPosition.North)
 
         # --- Central widget: Canvas ---
         self.canvas_panel = CanvasPanel(self.signals)
@@ -194,6 +195,9 @@ class MainWindow(QMainWindow):
         self.signals.orient_add_marker_mode.connect(
             self.canvas_panel.enter_add_orient_mode)
         self.signals.draw_orient.connect(self._on_draw_orient)
+
+        # --- Restore saved window geometry and dock layout ---
+        self._restore_layout()
 
     # ------------------------------------------------------------------
     # Status bar
@@ -784,6 +788,39 @@ class MainWindow(QMainWindow):
         self.menuBar().setEnabled(enabled)
 
     # ------------------------------------------------------------------
+    # Layout save / restore
+    # ------------------------------------------------------------------
+    def _save_layout(self):
+        """Save window geometry and dock state to config."""
+        section = "QtLayout"
+        if not Utils.config.has_section(section):
+            Utils.config.add_section(section)
+        geo = base64.b64encode(
+            self.saveGeometry().data()).decode("ascii")
+        state = base64.b64encode(
+            self.saveState().data()).decode("ascii")
+        Utils.config.set(section, "geometry", geo)
+        Utils.config.set(section, "state", state)
+
+    def _restore_layout(self):
+        """Restore window geometry and dock state from config."""
+        section = "QtLayout"
+        if not Utils.config.has_section(section):
+            return
+        try:
+            geo = Utils.config.get(section, "geometry")
+            self.restoreGeometry(
+                QByteArray(base64.b64decode(geo)))
+        except Exception:
+            pass
+        try:
+            state = Utils.config.get(section, "state")
+            self.restoreState(
+                QByteArray(base64.b64decode(state)))
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------------
     # Cleanup
     # ------------------------------------------------------------------
     def closeEvent(self, event):
@@ -791,6 +828,7 @@ class MainWindow(QMainWindow):
         if self._check_modified():
             event.ignore()
             return
+        self._save_layout()
         self.canvas_panel.camera_overlay.stop()
         self.tools_panel.saveConfig()
         self.probe_panel.saveConfig()
