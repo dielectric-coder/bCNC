@@ -89,13 +89,14 @@ QApplication
        ├─ self.sender = Sender()        # backend
        ├─ self.signals = AppSignals()    # signal hub
        ├─ self.serial_monitor            # QTimer → signals
-       ├─ self.canvas_panel              # central widget
-       ├─ self.control_panel             # left dock
-       ├─ self.probe_panel               # right dock
-       ├─ self.editor_panel              # right dock (tabbed)
+       ├─ self._central_splitter         # QSplitter (canvas | terminal)
+       │    ├─ self.canvas_panel         # left side of splitter
+       │    └─ self.terminal_panel       # right side of splitter
+       ├─ self.control_panel             # left dock (tab)
+       ├─ self.editor_panel              # left dock (tab)
+       ├─ self.probe_panel               # left dock (tab)
        ├─ self.tools_manager             # ToolsManager (tool/plugin loader)
-       ├─ self.tools_panel               # right dock (tabbed with editor)
-       └─ self.terminal_panel            # bottom dock
+       └─ self.tools_panel               # left dock (tab)
 
 canvas_panel
   ├─ self.camera_overlay                 # CameraOverlay (scene items, QTimer)
@@ -179,7 +180,7 @@ Config file: `~/.bCNC` (INI format). Shared between Tkinter and Qt UIs.
 6. In `main_window.py`:
    - Import the panel
    - Create a QDockWidget, set the panel as its widget
-   - Add to dock area, optionally tabify with another dock
+   - Add to left dock area, tabify with existing docks
    - Add toggle action to View menu
    - Call `saveConfig()` in `closeEvent()`
    - Add to `_set_widgets_enabled()` if panel should disable during runs

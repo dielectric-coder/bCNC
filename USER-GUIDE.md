@@ -23,16 +23,16 @@ Settings are shared — you can switch between UIs without losing configuration.
 
 ## Window Layout
 
-The main window has four areas:
+The main window has two columns:
 
-- **Central area** — Canvas showing toolpaths, probe data, and gantry position
-- **Left dock** — Control panel (DRO, connection, jog)
-- **Right dock** — Probe, Editor, and Tools panels (tabbed)
-- **Bottom dock** — Terminal (serial log and command entry)
+- **Left sidebar** — Tabbed dock with Control, Editor, Probe, and Tools panels
+- **Central area** — Canvas (left) and Terminal (right), separated by a
+  draggable splitter
 
-All docks can be dragged, resized, or closed via the View menu.
+All dock tabs can be dragged or closed via the View menu. The terminal can
+be toggled from View > Terminal.
 
-## Control Panel (Left Dock)
+## Control Panel (Left Sidebar)
 
 ### Connection
 - Select serial port, baud rate, and click **Connect**
@@ -108,9 +108,14 @@ The canvas shows:
 - Gantry position crosshair (updates when connected)
 - Probe data overlay (after autolevel scan)
 
-## Editor Panel (Right Dock)
+## Editor Panel (Left Sidebar)
 
 A tree view of G-code blocks and their lines.
+
+### Expand / Collapse
+- Click a block row to toggle its lines visible or hidden
+- The tree arrow and the Expand toolbar button also work
+- Block expand state is preserved across edits
 
 ### Selection
 - Click a block to select it (highlights on canvas)
@@ -130,7 +135,7 @@ A tree view of G-code blocks and their lines.
 - **Ctrl+I** — Import (merge into current file)
 - **File > Open Recent** — recent files list
 
-## Probe Panel (Right Dock)
+## Probe Panel (Left Sidebar)
 
 The Probe dock has shared settings at the top and five tabs below.
 
@@ -282,7 +287,7 @@ Manual tool change management for multi-tool jobs.
 
 **Change** — run the full tool change cycle (delegates to CNC.toolChange)
 
-## Tools Panel (Right Dock)
+## Tools Panel (Left Sidebar)
 
 The Tools panel provides tool databases, CAM operations, and access to all plugins.
 Select a tool or plugin from the categorized tree, configure its settings in the
@@ -337,7 +342,7 @@ Each plugin appears in the tree under its declared group. Select a plugin, fill 
 its parameters, and click Execute to run it. The help panel at the bottom shows
 documentation for the selected tool.
 
-## Terminal Panel (Bottom Dock)
+## Terminal Panel (Right of Canvas)
 
 - **Buffer** — shows serial buffer status
 - **Terminal log** — color-coded serial traffic (sent/received/ok/error)

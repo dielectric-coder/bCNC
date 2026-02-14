@@ -56,9 +56,7 @@ class GCodeTreeModel(QAbstractItemModel):
             # parent is a block — children are its lines
             bid = parent.row()
             if 0 <= bid < len(self.gcode.blocks):
-                block = self.gcode.blocks[bid]
-                if block.expand:
-                    return len(block)
+                return len(self.gcode.blocks[bid])
             return 0
         # lines have no children
         return 0

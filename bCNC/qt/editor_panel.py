@@ -75,6 +75,12 @@ class EditorPanel(QWidget):
         self._tree.selectionModel().selectionChanged.connect(
             self._on_selection_changed)
 
+        # Click on a block row toggles expand/collapse
+        self._tree.clicked.connect(self._on_clicked)
+        # Sync block.expand when user uses the tree arrow directly
+        self._tree.expanded.connect(self._on_tree_expanded)
+        self._tree.collapsed.connect(self._on_tree_collapsed)
+
         # --- Keyboard shortcuts ---
         self._setup_shortcuts()
 
@@ -147,6 +153,7 @@ class EditorPanel(QWidget):
     def fill(self, *_args):
         """Rebuild tree from gcode.blocks."""
         self._model.refresh()
+        self._sync_expand_state()
 
     # ------------------------------------------------------------------
     # Selection methods
@@ -673,11 +680,48 @@ class EditorPanel(QWidget):
     # ------------------------------------------------------------------
     def _on_modified(self):
         self._model.refresh()
+        self._sync_expand_state()
         self.signals.modified.emit()
         self.signals.draw_requested.emit()
 
     def _on_selection_changed(self):
         self.signals.selection_changed.emit()
+
+    def _on_clicked(self, proxy_idx):
+        """Toggle expand/collapse when a block row is clicked."""
+        if proxy_idx.parent().isValid():
+            return  # line row, not a block
+        expanded = self._tree.isExpanded(proxy_idx)
+        self._tree.setExpanded(proxy_idx, not expanded)
+        src_idx = self._proxy.mapToSource(proxy_idx)
+        if src_idx.isValid():
+            bid = src_idx.row()
+            if 0 <= bid < len(self.gcode.blocks):
+                self.gcode.blocks[bid].expand = not expanded
+
+    def _on_tree_expanded(self, proxy_idx):
+        """Sync block.expand when tree node is expanded via arrow."""
+        src_idx = self._proxy.mapToSource(proxy_idx)
+        if src_idx.isValid():
+            bid = src_idx.row()
+            if 0 <= bid < len(self.gcode.blocks):
+                self.gcode.blocks[bid].expand = True
+
+    def _on_tree_collapsed(self, proxy_idx):
+        """Sync block.expand when tree node is collapsed via arrow."""
+        src_idx = self._proxy.mapToSource(proxy_idx)
+        if src_idx.isValid():
+            bid = src_idx.row()
+            if 0 <= bid < len(self.gcode.blocks):
+                self.gcode.blocks[bid].expand = False
+
+    def _sync_expand_state(self):
+        """Sync tree expanded/collapsed state with block.expand flags."""
+        for bid, block in enumerate(self.gcode.blocks):
+            proxy_idx = self._proxy.mapFromSource(
+                self._model.block_index(bid))
+            if proxy_idx.isValid():
+                self._tree.setExpanded(proxy_idx, block.expand)
 
     def _on_filter_changed(self, text):
         self._proxy.setFilterFixedString(text)

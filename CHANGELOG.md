@@ -58,6 +58,12 @@ Backend decoupling and experimental Qt (PySide6) interface.
     fit-to-content zooms to toolpaths instead of the full workarea, cosmetic pens
     for consistent line widths at any zoom level
   - Command-line file loading: `python -m bCNC.qt.app <file.gcode>`
+  - Editor click-to-toggle: clicking a block row expands/collapses its lines
+    directly, no separate Expand button needed; tree arrows also sync with
+    block.expand state
+  - Two-column layout: all panels (Control, Editor, Probe, Tools) tabbed in a
+    single left sidebar; canvas and terminal side by side in the central area
+    via a resizable splitter
 
 ## 0.9.16
 - Breaking changes:

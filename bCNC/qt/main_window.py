@@ -11,7 +11,7 @@ import webbrowser
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWidgets import (
-    QMainWindow, QDockWidget, QStatusBar,
+    QMainWindow, QDockWidget, QStatusBar, QSplitter,
     QLabel, QProgressBar, QMenuBar, QToolBar,
     QFileDialog, QMessageBox,
 )
@@ -69,10 +69,18 @@ class MainWindow(QMainWindow):
         sender._ui_show_info = lambda title, msg: QMessageBox.information(
             self, title, msg)
 
-        # --- Central widget: Canvas ---
+        # --- Central widget: Canvas + Terminal side by side ---
+        self._central_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.canvas_panel = CanvasPanel(self.signals)
-        self.canvas_panel.setMinimumWidth(500)
-        self.setCentralWidget(self.canvas_panel)
+        self.canvas_panel.setMinimumWidth(400)
+        self._central_splitter.addWidget(self.canvas_panel)
+
+        self.terminal_panel = TerminalPanel(sender, self.signals)
+        self.terminal_panel.setMinimumWidth(200)
+        self._central_splitter.addWidget(self.terminal_panel)
+
+        self._central_splitter.setSizes([800, 300])
+        self.setCentralWidget(self._central_splitter)
 
         # --- Dock: Control panel (left) ---
         self.control_dock = QDockWidget("Control", self)
@@ -84,39 +92,29 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea,
                            self.control_dock)
 
-        # --- Dock: Terminal panel (bottom) ---
-        self.terminal_dock = QDockWidget("Terminal", self)
-        self.terminal_dock.setAllowedAreas(
-            Qt.DockWidgetArea.BottomDockWidgetArea
-            | Qt.DockWidgetArea.TopDockWidgetArea)
-        self.terminal_panel = TerminalPanel(sender, self.signals)
-        self.terminal_dock.setWidget(self.terminal_panel)
-        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea,
-                           self.terminal_dock)
-
-        # --- Dock: Probe panel (right) ---
-        self.probe_dock = QDockWidget("Probe", self)
-        self.probe_dock.setAllowedAreas(
-            Qt.DockWidgetArea.LeftDockWidgetArea
-            | Qt.DockWidgetArea.RightDockWidgetArea)
-        self.probe_panel = ProbePanel(sender, self.signals)
-        self.probe_dock.setWidget(self.probe_panel)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea,
-                           self.probe_dock)
-
-        # --- Dock: Editor panel (right, tabified with probe) ---
+        # --- Dock: Editor panel (left, tabified with control) ---
         self.editor_dock = QDockWidget("Editor", self)
         self.editor_dock.setAllowedAreas(
             Qt.DockWidgetArea.LeftDockWidgetArea
             | Qt.DockWidgetArea.RightDockWidgetArea)
         self.editor_panel = EditorPanel(sender.gcode, self.signals)
         self.editor_dock.setWidget(self.editor_panel)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea,
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea,
                            self.editor_dock)
-        self.tabifyDockWidget(self.probe_dock, self.editor_dock)
-        self.editor_dock.raise_()
+        self.tabifyDockWidget(self.control_dock, self.editor_dock)
 
-        # --- Dock: Tools panel (right, tabified with editor) ---
+        # --- Dock: Probe panel (left, tabified) ---
+        self.probe_dock = QDockWidget("Probe", self)
+        self.probe_dock.setAllowedAreas(
+            Qt.DockWidgetArea.LeftDockWidgetArea
+            | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.probe_panel = ProbePanel(sender, self.signals)
+        self.probe_dock.setWidget(self.probe_panel)
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea,
+                           self.probe_dock)
+        self.tabifyDockWidget(self.editor_dock, self.probe_dock)
+
+        # --- Dock: Tools panel (left, tabified) ---
         self.tools_manager = ToolsManager(sender.gcode)
         self.tools_manager.loadConfig()
 
@@ -127,10 +125,12 @@ class MainWindow(QMainWindow):
         self.tools_panel = ToolsPanel(
             sender, self.signals, self.tools_manager, self.editor_panel)
         self.tools_dock.setWidget(self.tools_panel)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea,
+        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea,
                            self.tools_dock)
-        self.tabifyDockWidget(self.editor_dock, self.tools_dock)
-        self.editor_dock.raise_()
+        self.tabifyDockWidget(self.probe_dock, self.tools_dock)
+
+        # Start with Control tab active
+        self.control_dock.raise_()
 
         # --- Wire camera tab ↔ canvas overlay ---
         self.probe_panel.camera_tab.set_camera_overlay(
@@ -317,10 +317,14 @@ class MainWindow(QMainWindow):
         view_menu = menubar.addMenu("&View")
 
         view_menu.addAction(self.control_dock.toggleViewAction())
-        view_menu.addAction(self.terminal_dock.toggleViewAction())
         view_menu.addAction(self.probe_dock.toggleViewAction())
         view_menu.addAction(self.editor_dock.toggleViewAction())
         view_menu.addAction(self.tools_dock.toggleViewAction())
+
+        terminal_action = QAction("Terminal", self, checkable=True)
+        terminal_action.setChecked(True)
+        terminal_action.toggled.connect(self.terminal_panel.setVisible)
+        view_menu.addAction(terminal_action)
 
         view_menu.addSeparator()
 
