@@ -15,7 +15,7 @@ for sub in ("bCNC", "bCNC/lib", "bCNC/controllers", "bCNC/plugins"):
         sys.path.insert(0, p)
 
 import Helpers  # noqa: E402  — must be first (installs _() builtin)
-import Utils  # noqa: E402
+import utils_core as Utils  # noqa: E402
 
 # Patch config.get so missing sections don't raise
 _orig_get = Utils.config.get

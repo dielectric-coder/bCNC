@@ -4,7 +4,6 @@
 # Date:      20-Aug-2015
 
 from ToolsPage import Plugin
-from tkinter import messagebox
 
 __author__ = "Vasilis Vlachoudis"
 __email__ = "Vasilis.Vlachoudis@cern.ch"
@@ -40,7 +39,7 @@ class Tool(Plugin):
             blocks = app.editor.getSelectedBlocks()
 
         if not blocks:
-            messagebox.showerror(_("Tile error"), _("No g-code blocks selected"))
+            app.setStatus(_("Tile error: No g-code blocks selected"))
             return
 
         try:

@@ -11,15 +11,17 @@ Forked from [vlachoudis/bCNC](https://github.com/vlachoudis/bCNC).
 
 ## Critical Import Order
 
-`Helpers.py` **must** be imported before `Utils.py` — it installs the `_()` builtin via `gettext.install()`. Every Qt file that uses `_()` relies on this.
+`Helpers.py` **must** be imported before `Utils.py` or `utils_core.py` — it installs the `_()` builtin via `gettext.install()`. Every Qt file that uses `_()` relies on this.
 
 ```python
 import Helpers  # FIRST — installs _() builtin
-import Utils
+import utils_core as Utils  # Qt files use this (no tkinter dependency)
 from CNC import CNC
 ```
 
-`Utils` → `Ribbon` → `tkExtra` → `bFileDialog` chain still requires tkinter at import time. Qt modules avoid importing Utils at module level where possible.
+`Utils.py` → `Ribbon` → `tkExtra` → `bFileDialog` chain requires tkinter at import time. Qt modules import `utils_core` (aliased as `Utils`) instead, which provides the same config helpers, metadata, and path utilities without pulling in tkinter. `Utils.py` re-exports everything from `utils_core` via `from utils_core import *`.
+
+Similarly, `tools_base.py` contains all toolkit-independent tool classes (`_Base`, `DataBase`, `Plugin`, and 15 built-in tools). `ToolsPage.py` re-exports everything from `tools_base` and lazily loads Tkinter UI classes (Tools, DataBaseGroup, etc.) only when accessed. Qt modules import from `tools_base` directly. Plugins that do `from ToolsPage import Plugin` get the class from `tools_base` without triggering any tkinter import.
 
 ## Architecture
 
@@ -61,7 +63,7 @@ Sender (backend thread) → SerialMonitor._poll() (QTimer 200ms) → Qt signals 
 
 | Layer | Files |
 |-------|-------|
-| Backend (toolkit-independent) | `Sender.py`, `CNC.py`, `EventBus.py`, `MachineState.py`, `CommandDispatcher.py`, `FileManager.py` |
+| Backend (toolkit-independent) | `Sender.py`, `CNC.py`, `EventBus.py`, `MachineState.py`, `CommandDispatcher.py`, `FileManager.py`, `utils_core.py`, `tools_base.py` |
 | Canvas math (toolkit-independent) | `ViewTransform.py`, `PathGeometry.py`, `SceneGraph.py` |
 | Qt UI | `qt/{app,signals,main_window,canvas_widget,control_panel,terminal_panel,serial_monitor,editor_panel,editor_model,probe_panel,autolevel_panel,camera_overlay,camera_tab,orient_overlay,orient_tab,tools_manager,tools_panel}.py` |
 | Tkinter UI (original) | `bmain.py`, `ControlPage.py`, `EditorPage.py`, `ProbePage.py`, `FilePage.py`, `TerminalPage.py`, `ToolsPage.py`, `CNCCanvas.py` |
@@ -138,8 +140,11 @@ python -m bCNC.qt.app
 
 ## Remaining Gaps (Tkinter → Qt)
 
-All major UI features have been ported. The advanced toolbar/ribbon system
-(CNCRibbon with configurable groups) is a lower-priority gap tracked in DEV-GUIDE.md.
+All major UI features have been ported. The Qt app is fully tkinter-free at
+runtime. Remaining gap:
+
+- **Advanced toolbar/ribbon** — CNCRibbon with configurable groups (lower priority,
+  tracked in DEV-GUIDE.md).
 
 ## Documentation Files
 

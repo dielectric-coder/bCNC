@@ -20,8 +20,8 @@ from PySide6.QtWidgets import (
     QMessageBox, QApplication,
 )
 
-from ToolsPage import DataBase
 from CommandDispatcher import GCodeOperations
+from tools_base import DataBase
 
 
 class _EditorProxy:

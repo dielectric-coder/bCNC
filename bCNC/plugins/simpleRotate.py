@@ -3,8 +3,6 @@
 # Author:    DodoLaSaumure
 # Date:      30-Dec-2019
 
-from tkinter import messagebox
-
 from ToolsPage import Plugin
 
 __author__ = "DodoLaSaumure"
@@ -44,8 +42,7 @@ class Tool(Plugin):
             app.editor.selectAll()
             blocks = app.editor.getSelectedBlocks()
         if not blocks:
-            messagebox.showerror(_("Tile error"),
-                                 _("No g-code blocks selected"))
+            app.setStatus(_("Tile error: No g-code blocks selected"))
             return
         pos = blocks[-1]  # insert position
         alpha_current = alpha

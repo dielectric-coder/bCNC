@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QComboBox, QDoubleSpinBox, QDialog, QTextEdit,
 )
 
-import Utils
+import utils_core as Utils
 from CNC import CNC, WCS
 from Sender import CONNECTED, NOT_CONNECTED, STATECOLOR
 

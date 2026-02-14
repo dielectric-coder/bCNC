@@ -6,7 +6,7 @@ import time
 
 from CNC import CNC, WCS
 
-import Utils
+import utils_core as Utils
 
 # GRBLv1
 SPLITPAT = re.compile(r"[:,]")

@@ -13,7 +13,6 @@ __version__ = "1.1"
 
 from CNC import CNC,Block
 from ToolsPage import Plugin
-from tkinter import messagebox
 
 """
 This plugin prepares gcode for laser cutting or engraving by adding Fxxx and Sxxxx gcode in selected blocks 
@@ -400,7 +399,7 @@ Read file LaserCut.py for more documentation.
 	def execute(self, app):
 		# Exit if lasercutter is not set.
 		if not CNC.lasercutter:
-			messagebox.showerror(_("Lasercut error"), _("Please activate 'Laser Cutter' in the CNC configuration panel and restart bCNC."))
+			app.setStatus(_("Lasercut error: Please activate 'Laser Cutter' in the CNC configuration panel and restart bCNC."))
 			return
 		# Retreive data from user input.
 		# Name of the setup.
@@ -450,7 +449,7 @@ Read file LaserCut.py for more documentation.
 				continue
 			Valid_Block_IDs.append(Block_ID)
 		if not Valid_Block_IDs:
-			messagebox.showerror(_("Lasercut error"), _("No valid block selected."))
+			app.setStatus(_("Lasercut error: No valid block selected."))
 			return
 		#
 		# Update the valid blocks.

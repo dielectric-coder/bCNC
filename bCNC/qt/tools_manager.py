@@ -11,7 +11,7 @@ from operator import attrgetter
 
 from PySide6.QtCore import QObject, Signal
 
-import Utils
+import utils_core as Utils
 
 
 class _NoOpListbox:
@@ -76,8 +76,8 @@ class ToolsManager(QObject):
         self.listbox = _NoOpListbox()
         self.widget = {}
 
-        # Import tool classes from ToolsPage
-        from ToolsPage import (
+        # Import tool classes from tools_base (no tkinter dependency)
+        from tools_base import (
             Camera, Config, Font, Color, Controller,
             Cut, Drill, EndMill, Events, Material,
             Pocket, Profile, Shortcut, Stock, Tabs,

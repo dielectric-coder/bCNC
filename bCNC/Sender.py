@@ -20,7 +20,7 @@ from queue import (
 
 import Pendant
 import rexx
-import Utils
+import utils_core as Utils
 from CNC import CNC, MSG, UPDATE, WAIT, GCode
 from MachineState import MachineState
 from EventBus import bus as event_bus

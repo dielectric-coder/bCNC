@@ -9,7 +9,7 @@ import os.path
 import re
 from collections import OrderedDict
 
-import Utils
+import utils_core as Utils
 from CNC import CNC, Block
 from ToolsPage import Plugin
 

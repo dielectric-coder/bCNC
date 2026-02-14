@@ -6,8 +6,6 @@
 import math
 import sys  # Trouble Shooting Only!
 
-from tkinter import messagebox
-
 from CNC import CNC, Block
 from ToolsPage import Plugin
 
@@ -81,12 +79,18 @@ class Spiral:
         elif (
             Stepover > StepOverInUnitMax and SpiralType == "Lines"
         ):  # This could cause a tool crash, but could also be used to make faceted shapes.
-            dr = messagebox.askyesno(
-                "Crash Risk",
-                "WARNING: Using a larger stepover value than tool's "
-                + "maximum with lines operation may result in a tool crash. "
-                + "Do you want to continue?",
-            )
+            app.setStatus(_("WARNING: Stepover exceeds tool maximum — crash risk with lines operation"))
+            dr = True
+            try:
+                from tkinter import messagebox
+                dr = messagebox.askyesno(
+                    "Crash Risk",
+                    "WARNING: Using a larger stepover value than tool's "
+                    + "maximum with lines operation may result in a tool crash. "
+                    + "Do you want to continue?",
+                )
+            except ImportError:
+                pass
             sys.stdout.write(f"{dr}")
             if dr is True or dr == "yes":
                 app.setStatus(
@@ -426,11 +430,7 @@ class Spiral:
             return
         block.append(CNC.zexit(ZApproach))
         blocks.append(block)
-        messagebox.showinfo(
-            "Crash Risk",
-            "WARNING: Check CAM file Header for Z move. If it exists, "
-            + "remove it to prevent tool crash.",
-        )
+        app.setStatus(_("WARNING: Check CAM file Header for Z move. If it exists, remove it to prevent tool crash."))
 
         return blocks
 

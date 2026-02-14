@@ -27,7 +27,10 @@ bCNC/
   Sender.py                # Backend: serial comm, G-code queue, run loop
   CNC.py                   # CNC class: G-code parser, vars dict, tool change
   Helpers.py               # Must be imported first (installs _() builtin)
-  Utils.py                 # Config (INI), utility functions
+  utils_core.py            # Config helpers, metadata, paths (no tkinter)
+  Utils.py                 # Re-exports utils_core + tkinter UI utilities
+  tools_base.py            # Tool base classes + built-in tools (no tkinter)
+  ToolsPage.py             # Re-exports tools_base + lazy-loads Tkinter UI
 
   # Phase 1 — Decoupled backend (toolkit-independent)
   EventBus.py              # Pub/sub signal system
@@ -68,7 +71,7 @@ bCNC/
   ProbePage.py             # Probe, autolevel, camera, tool
   FilePage.py              # File ops, pendant, serial config
   TerminalPage.py          # Serial terminal
-  ToolsPage.py             # Tool database, plugins, CAM
+  ToolsPage.py             # Re-exports tools_base + lazy Tkinter UI classes
   CNCCanvas.py             # Tkinter canvas
 
   controllers/             # GRBL0, GRBL1, SMOOTHIE, G2Core
@@ -157,7 +160,7 @@ xmin, xmax, ymin, ymax  # G-code bounding box
 
 ### Config Persistence
 
-Config uses Python's ConfigParser via `Utils.py`:
+Config uses Python's ConfigParser via `utils_core.py` (Qt) or `Utils.py` (Tkinter):
 ```python
 Utils.getFloat("Probe", "feed", 10.0)    # read with default
 Utils.setFloat("Probe", "feed", value)    # write
@@ -166,7 +169,14 @@ Utils.setStr("Connection", "port", "/dev/ttyUSB0")
 Utils.getBool("Probe", "autogoto", False)
 ```
 
+Qt files and backend files (Sender, FileManager, Camera, Pendant,
+_GenericController) use `import utils_core as Utils` — same API, no tkinter
+dependency.  Tkinter UI files use `import Utils` which re-exports everything
+from utils_core plus tkinter-specific helpers (fonts, icons, dialogs).
+
 Config file: `~/.bCNC` (INI format). Shared between Tkinter and Qt UIs.
+Both modules share the same `config` singleton — changes made through either
+are visible to the other.
 
 ### Layout Persistence
 

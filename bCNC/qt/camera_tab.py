@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QComboBox, QCheckBox, QMessageBox,
 )
 
-import Utils
+import utils_core as Utils
 import Camera
 from CNC import CNC
 

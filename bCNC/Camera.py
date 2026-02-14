@@ -3,7 +3,7 @@
 # Author: vvlachoudis@gmail.com
 # Date: 24-Aug-2014
 
-import Utils
+import utils_core as Utils
 
 try:
     import cv2 as cv
@@ -16,10 +16,21 @@ except ImportError:
     np = None
 
 try:
-    from PIL import Image, ImageTk
+    from PIL import Image
 except ImportError:
-    print("Unable to import Image, ImageTk from Pillow\n")
+    Image = None
+    print("Unable to import Image from Pillow\n")
     cv = None
+
+# ImageTk imports tkinter — lazy-load only when needed (Tkinter path)
+ImageTk = None
+
+
+def _ensure_imagetk():
+    global ImageTk
+    if ImageTk is None:
+        from PIL import ImageTk as _ImageTk
+        ImageTk = _ImageTk
 
 
 # -----------------------------------------------------------------------------
@@ -320,6 +331,7 @@ class Camera:
     def toTk(self):
         if self.image is None:
             return None
+        _ensure_imagetk()
         self.imagetk = ImageTk.PhotoImage(
             image=Image.fromarray(cv.cvtColor(self.image, cv.COLOR_BGR2RGB),
                                   "RGB")

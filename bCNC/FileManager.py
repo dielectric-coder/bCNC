@@ -6,7 +6,7 @@
 
 import os
 
-import Utils
+import utils_core as Utils
 from CNC import GCode
 from EventBus import bus as event_bus
 

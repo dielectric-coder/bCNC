@@ -31,7 +31,7 @@ if _plug_dir not in sys.path:
 # (Helpers.py does gettext.install() which puts _() in builtins)
 import Helpers  # noqa: F401
 
-import Utils
+import utils_core as Utils
 Utils.loadConfiguration()
 
 from PySide6.QtWidgets import QApplication

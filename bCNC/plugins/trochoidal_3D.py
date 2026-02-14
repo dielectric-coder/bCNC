@@ -18,7 +18,6 @@ from math import (
     sin,
     sqrt,
 )
-from tkinter import EXCEPTION
 
 from CNC import CNC, Block
 from ToolsPage import Plugin
@@ -177,7 +176,7 @@ class Tool(Plugin):
                     cmd = app.cnc.breakLine(
                         app.gcode.evaluate(app.cnc.compileLine(line))
                     )
-                except EXCEPTION:
+                except Exception:
                     cmd = None
 
                 if cmd:

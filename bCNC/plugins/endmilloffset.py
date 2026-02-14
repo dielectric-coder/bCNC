@@ -3,7 +3,6 @@
 
 import sys
 from copy import deepcopy
-from tkinter import messagebox
 
 from bpath import Path, Segment
 from ToolsPage import Plugin
@@ -560,9 +559,7 @@ Grey is simulation of how part will look after machining
             app,
         )
         if msg:
-            messagebox.showwarning(
-                _("Open paths"), _("WARNING: {}").format(msg), parent=app
-            )
+            app.setStatus(_("Open paths WARNING: {}").format(msg))
         app.editor.fill()
         app.editor.selectBlocks(selectedblocks)
         app.draw()

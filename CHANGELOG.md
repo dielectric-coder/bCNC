@@ -6,6 +6,22 @@ There are too much commits, so i've created this brief overview of new features 
 
 Backend decoupling and experimental Qt (PySide6) interface.
 
+- utils_core.py — tkinter-free config/utility module extracted from Utils.py;
+  Qt files and backend files (Sender, FileManager, Camera, Pendant,
+  _GenericController) import `utils_core as Utils` to avoid the
+  Utils → Ribbon → tkExtra → tkinter import chain.
+  Circular import between Ribbon ↔ Utils resolved with `hasattr` guard.
+
+- tools_base.py — toolkit-independent tool base classes (_Base, DataBase,
+  Plugin, and all 15 built-in tool classes) extracted from ToolsPage.py.
+  ToolsPage.py re-exports everything and lazily loads Tkinter UI classes
+  only when accessed.  Qt files import from tools_base directly.
+  Camera.py: PIL.ImageTk lazy-loaded to avoid tkinter at import time.
+  Plugins: removed top-level tkinter imports from driller, tile, Random,
+  simpleTranslate, simpleRotate, LaserCut, endmilloffset, spiral,
+  stlSlicer, and trochoidal_3D — messagebox calls replaced with
+  app.setStatus(), making the Qt app fully tkinter-free at runtime.
+
 - Phase 1 — Decouple backend from Tkinter
   - EventBus: toolkit-independent pub/sub signal system
   - MachineState: observable wrapper around CNC.vars with thread-safe batch updates

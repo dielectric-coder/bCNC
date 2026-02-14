@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (
 
 import Pendant
 
-import Utils
+import utils_core as Utils
 from CNC import CNC, GCode
 
 from .signals import AppSignals

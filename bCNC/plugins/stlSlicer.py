@@ -29,14 +29,6 @@ __author__ = "@DodoLaSaumure  (Pierre Klein)"
 __name__ = _("stl3DSlicer")
 __version__ = "0.0.1"
 
-try:
-	import Tkinter
-	from Tkinter import *
-	import tkMessageBox
-except ImportError:
-	import tkinter
-	from tkinter import *
-	import tkinter.messagebox as tkMessageBox
 
 # DIALOG_ICON = 'questhead'
 
@@ -845,9 +837,7 @@ NB : This plugin does not work for flat surfaces, please use Offset, Profile, Cu
 				z -= zstep
 		if zend < -toolLength :
 			msg = "Be careful, the tool length might be too short..."
-			tkMessageBox.showwarning(_("Tool Length too short"),
-		_("WARNING: %s")%(msg),
-			parent=app)
+			app.setStatus(_("WARNING: Tool Length too short - %s") % (msg,))
 		t1 = time.time()
 		print ("time for compute ",t1-t0)
 		app.refresh()

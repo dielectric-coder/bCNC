@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
 )
 
-import Utils
+import utils_core as Utils
 from CNC import CNC
 
 from .autolevel_panel import AutolevelTab
