@@ -17,7 +17,7 @@ The main window has four areas:
 
 - **Central area** — Canvas showing toolpaths, probe data, and gantry position
 - **Left dock** — Control panel (DRO, connection, jog)
-- **Right dock** — Probe and Editor panels (tabbed)
+- **Right dock** — Probe, Editor, and Tools panels (tabbed)
 - **Bottom dock** — Terminal (serial log and command entry)
 
 All docks can be dragged, resized, or closed via the View menu.
@@ -156,6 +156,61 @@ Manual tool change management for multi-tool jobs.
 4. Return to tool change position
 
 **Change** — run the full tool change cycle (delegates to CNC.toolChange)
+
+## Tools Panel (Right Dock)
+
+The Tools panel provides tool databases, CAM operations, and access to all plugins.
+Select a tool or plugin from the categorized tree, configure its settings in the
+form below, and click Execute.
+
+### Tool Selector Tree
+
+Tools are organized into categories:
+
+- **Config** — CNC, Controller, Camera, Shortcut, Font, Color, Events
+- **Database** — Material, EndMill, Stock (with Add/Delete/Clone/Rename buttons)
+- **CAM** — Cut, Drill, Profile, Pocket, Tabs, plus CAM plugins (Trochoidal, etc.)
+- **Generator** — SimpleLine, SimpleRectangle, Bowl, Spirograph, Gear, etc.
+- **Artistic** — Halftone, Sketch, Pyrograph, etc.
+- **Macros** — remaining plugins
+
+### Variable Form
+
+Each tool's settings are shown as a dynamic form. Field types include spinboxes
+for numbers, checkboxes for booleans, dropdowns for lists/databases, color pickers,
+and file browsers. Values are saved to config on tool switch or panel close.
+
+### CAM Operations
+
+Select one or more blocks in the Editor, then choose a CAM tool and click Execute:
+
+- **Cut** — cut along selected paths with configurable strategy (flat, helical, ramp),
+  depth, step-down, and bottom finishing passes
+- **Drill** — convert closed paths to drill points at their center, with optional
+  peck drilling, dwell, and depth settings
+- **Profile** — generate an offset profile (inside or outside) of selected paths,
+  with overcut, direction, and endmill compensation
+- **Pocket** — clear all material inside selected closed paths using the configured
+  endmill diameter and stepover percentage
+- **Tabs** — add holding tabs (islands) along selected paths to keep parts in place
+  during cutting, with configurable count, spacing, width, and height
+
+### Database Tools
+
+Material, EndMill, and Stock tools have a database of named entries.
+Use the buttons below the tree to manage entries:
+
+- **Add** — create a new entry with default values
+- **Delete** — remove the current entry
+- **Clone** — duplicate the current entry
+- **Rename** — change the name of the current entry
+
+### Plugins
+
+All 42+ external plugins are loaded automatically from the `plugins/` directory.
+Each plugin appears in the tree under its declared group. Select a plugin, fill in
+its parameters, and click Execute to run it. The help panel at the bottom shows
+documentation for the selected tool.
 
 ## Terminal Panel (Bottom Dock)
 

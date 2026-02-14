@@ -37,6 +37,8 @@ bCNC/
     editor_panel.py        # QTreeView editor with context menu
     probe_panel.py         # ProbePanel (tabs), ProbeCommonWidget, ProbeTab, ToolTab
     autolevel_panel.py     # AutolevelTab (grid scan)
+    tools_manager.py       # ToolsManager — Tkinter-free tool/plugin loader
+    tools_panel.py         # AppProxy, VariableForm, ToolsPanel
 
   # Tkinter UI (original, still functional)
   bmain.py                 # Application(Tk, Sender)
@@ -70,6 +72,8 @@ QApplication
        ├─ self.control_panel             # left dock
        ├─ self.probe_panel               # right dock
        ├─ self.editor_panel              # right dock (tabbed)
+       ├─ self.tools_manager             # ToolsManager (tool/plugin loader)
+       ├─ self.tools_panel               # right dock (tabbed with editor)
        └─ self.terminal_panel            # bottom dock
 ```
 
@@ -208,15 +212,13 @@ Special line prefixes in runLines sequences:
 | `editor_panel.py` | `EditorPanel` | QTreeView with toolbar and context menu |
 | `probe_panel.py` | `ProbeCommonWidget`, `ProbeTab`, `ToolTab`, `ProbePanel` | Tabbed probe container |
 | `autolevel_panel.py` | `AutolevelTab` | Grid scan config and actions |
+| `tools_manager.py` | `ToolsManager`, `_NoOpListbox` | Tkinter-free tool/plugin loader |
+| `tools_panel.py` | `AppProxy`, `_EditorProxy`, `VariableForm`, `ToolsPanel` | Tool UI, form builder, plugin execution |
 
 ## What's Not Yet Ported
 
-### High Priority
-- **Camera tab** — camera alignment, registration, offset calibration (ProbePage.py CameraFrame)
-- **Tools page** — tool database UI, add/edit/delete tools (ToolsPage.py)
-- **Plugin system** — 43 plugins exist but no Qt UI to select/configure/run them
-
 ### Medium Priority
+- **Camera tab** — camera alignment, registration, offset calibration (ProbePage.py CameraFrame)
 - **Web pendant** — start/stop buttons (Pendant.py works, needs Qt integration)
 - **6-axis support** — A/B/C axis DRO and jog controls (ControlPage.py abcDROFrame)
 - **Orient tab** — orientation markers for workpiece alignment
@@ -239,6 +241,7 @@ python -c "
 import py_compile
 for f in ['bCNC/qt/signals.py', 'bCNC/qt/serial_monitor.py',
           'bCNC/qt/autolevel_panel.py', 'bCNC/qt/probe_panel.py',
+          'bCNC/qt/tools_manager.py', 'bCNC/qt/tools_panel.py',
           'bCNC/qt/main_window.py', 'bCNC/qt/app.py']:
     py_compile.compile(f, doraise=True)
     print(f'OK: {f}')
@@ -247,9 +250,9 @@ for f in ['bCNC/qt/signals.py', 'bCNC/qt/serial_monitor.py',
 
 ### Import check with real dependencies
 ```bash
-PYTHONPATH=bCNC:bCNC/lib:bCNC/controllers python -c "
+PYTHONPATH=bCNC:bCNC/lib:bCNC/controllers:bCNC/plugins python -c "
 import Helpers
-from bCNC.qt.probe_panel import ProbePanel
+from bCNC.qt.tools_panel import ToolsPanel
 print('OK')
 "
 ```
