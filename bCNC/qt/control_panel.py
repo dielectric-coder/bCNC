@@ -19,7 +19,33 @@ from Sender import CONNECTED, NOT_CONNECTED, STATECOLOR
 # Jog step sizes (mm)
 JOG_STEPS = [0.001, 0.01, 0.1, 1.0, 5.0, 10.0, 50.0, 100.0]
 
-DRO_FONT = QFont("Monospace", 14, QFont.Weight.Bold)
+
+def _config_font(key, default_family="Sans", default_size=12, default_bold=False):
+    """Load a QFont from [Font] config section.
+
+    Config format: "FontFamily,size[,bold][,italic]" (matches Tkinter convention).
+    """
+    family, size, bold, italic = default_family, default_size, default_bold, False
+    try:
+        value = Utils.config.get("Font", key)
+        if value:
+            parts = [p.strip() for p in value.split(",")]
+            if parts:
+                family = parts[0]
+            if len(parts) > 1:
+                try:
+                    size = abs(int(parts[1]))
+                except ValueError:
+                    pass
+            for p in parts[2:]:
+                if p.lower() == "bold":
+                    bold = True
+                elif p.lower() == "italic":
+                    italic = True
+    except Exception:
+        pass
+    weight = QFont.Weight.Bold if bold else QFont.Weight.Normal
+    return QFont(family, size, weight, italic)
 
 
 class DROWidget(QWidget):
@@ -27,6 +53,10 @@ class DROWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        # Load DRO fonts from [Font] config (matches Tkinter keys)
+        wpos_font = _config_font("dro.wpos", "Sans", 12, True)
+        mpos_font = _config_font("dro.mpos", "Sans", 12, False)
 
         layout = QGridLayout(self)
         layout.setContentsMargins(2, 2, 2, 2)
@@ -46,14 +76,14 @@ class DROWidget(QWidget):
         for row, axis in enumerate(axes, start=1):
             # Axis name
             name_lbl = QLabel(axis)
-            name_lbl.setFont(DRO_FONT)
+            name_lbl.setFont(wpos_font)
             name_lbl.setStyleSheet(f"color: {colors[axis]};")
             name_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             layout.addWidget(name_lbl, row, 0)
 
             # Work position
             w_lbl = QLabel("0.000")
-            w_lbl.setFont(DRO_FONT)
+            w_lbl.setFont(wpos_font)
             w_lbl.setAlignment(Qt.AlignmentFlag.AlignRight
                                | Qt.AlignmentFlag.AlignVCenter)
             w_lbl.setMinimumWidth(100)
@@ -62,7 +92,7 @@ class DROWidget(QWidget):
 
             # Machine position
             m_lbl = QLabel("0.000")
-            m_lbl.setFont(DRO_FONT)
+            m_lbl.setFont(mpos_font)
             m_lbl.setStyleSheet("color: gray;")
             m_lbl.setAlignment(Qt.AlignmentFlag.AlignRight
                                | Qt.AlignmentFlag.AlignVCenter)
@@ -76,13 +106,13 @@ class DROWidget(QWidget):
             abc_colors = {"A": "#FF8C00", "B": "#00CED1", "C": "#DA70D6"}
             for row, axis in enumerate(abc_axes, start=len(axes) + 1):
                 name_lbl = QLabel(axis)
-                name_lbl.setFont(DRO_FONT)
+                name_lbl.setFont(wpos_font)
                 name_lbl.setStyleSheet(f"color: {abc_colors[axis]};")
                 name_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
                 layout.addWidget(name_lbl, row, 0)
 
                 w_lbl = QLabel("0.000")
-                w_lbl.setFont(DRO_FONT)
+                w_lbl.setFont(wpos_font)
                 w_lbl.setAlignment(Qt.AlignmentFlag.AlignRight
                                    | Qt.AlignmentFlag.AlignVCenter)
                 w_lbl.setMinimumWidth(100)
@@ -90,7 +120,7 @@ class DROWidget(QWidget):
                 self._work_labels[axis] = w_lbl
 
                 m_lbl = QLabel("0.000")
-                m_lbl.setFont(DRO_FONT)
+                m_lbl.setFont(mpos_font)
                 m_lbl.setStyleSheet("color: gray;")
                 m_lbl.setAlignment(Qt.AlignmentFlag.AlignRight
                                    | Qt.AlignmentFlag.AlignVCenter)

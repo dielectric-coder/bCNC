@@ -31,6 +31,9 @@ All docks can be dragged, resized, or closed via the View menu.
 ### DRO (Digital Readout)
 - Displays work coordinates (X, Y, Z) and machine coordinates
 - Values update in real time when connected
+- Fonts are configurable via the `[Font]` section in config: `dro.wpos` for work
+  positions (default: `Sans,12,bold`), `dro.mpos` for machine positions (default:
+  `Sans,12`). Format: `FontFamily,size[,bold][,italic]`
 - **WCS selector** (G54-G59) — row of toggle buttons to switch workspace
   coordinate systems. The active WCS is highlighted automatically when the
   machine reports its parser state. Clicking a button sends the WCS command

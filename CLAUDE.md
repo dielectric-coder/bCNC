@@ -137,7 +137,8 @@ python -m bCNC.qt.app
 
 ## Remaining Gaps (Tkinter → Qt)
 
-- **DRO font customization**
+All major UI features have been ported. The advanced toolbar/ribbon system
+(CNCRibbon with configurable groups) is a lower-priority gap tracked in DEV-GUIDE.md.
 
 ## Documentation Files
 

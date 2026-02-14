@@ -29,6 +29,8 @@ Backend decoupling and experimental Qt (PySide6) interface.
     sending commands when not connected
   - Workspace selection: G54-G59 quick-switch buttons in the Position group,
     with live highlight tracking via `$G` parser state updates
+  - DRO font customization: work and machine position fonts loaded from `[Font]`
+    config section (`dro.wpos`, `dro.mpos`), shared with Tkinter settings
   - 6-axis (ABC) support: conditional DRO rows, jog buttons, and zero buttons
     when `enable6axisopt` is enabled in config (matches Tkinter 6-axis mode)
   - Terminal: serial log with command entry and history
