@@ -30,6 +30,8 @@ The main window has two columns:
 - **Central area** — Canvas showing toolpaths, probe data, and gantry position
 
 All dock tabs can be dragged or closed via the View menu.
+Window size, position, and dock arrangement are saved on close and
+restored on the next launch.
 
 ## Control Panel (Left Sidebar)
 

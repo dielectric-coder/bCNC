@@ -168,6 +168,13 @@ Utils.getBool("Probe", "autogoto", False)
 
 Config file: `~/.bCNC` (INI format). Shared between Tkinter and Qt UIs.
 
+### Layout Persistence
+
+Window geometry and dock state are saved/restored via `QMainWindow.saveState()`
+and `saveGeometry()`, stored as base64 in `[QtLayout]`. Every QDockWidget and
+QToolBar must have a unique `objectName` set for this to work.
+`Utils.saveConfiguration()` is called in `closeEvent` to flush to disk.
+
 ## Conventions
 
 ### Adding a New Panel

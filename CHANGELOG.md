@@ -64,6 +64,8 @@ Backend decoupling and experimental Qt (PySide6) interface.
   - Two-column layout: all panels (Control, Editor, Probe, Tools, Terminal)
     tabbed in a single left sidebar with tabs on top; canvas fills the
     central area
+  - Persistent window layout: window size, position, dock arrangement, and
+    tab order saved to `[QtLayout]` in config on close, restored on launch
 
 ## 0.9.16
 - Breaking changes:
