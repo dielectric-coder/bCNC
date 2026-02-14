@@ -716,6 +716,10 @@ class ProbePanel(QWidget):
         self.camera_tab = CameraTab(sender, signals)
         self.tabs.addTab(self.camera_tab, "Camera")
 
+        from .orient_tab import OrientTab
+        self.orient_tab = OrientTab(sender, signals)
+        self.tabs.addTab(self.orient_tab, "Orient")
+
         self.tool_tab = ToolTab(sender, signals, self.probe_common)
         self.tabs.addTab(self.tool_tab, "Tool")
 
@@ -737,6 +741,7 @@ class ProbePanel(QWidget):
         self.probe_tab.saveConfig()
         self.autolevel_tab.saveConfig()
         self.camera_tab.saveConfig()
+        self.orient_tab.saveConfig()
         self.tool_tab.saveConfig()
 
     def loadConfig(self):
@@ -744,4 +749,5 @@ class ProbePanel(QWidget):
         self.probe_tab.loadConfig()
         self.autolevel_tab.loadConfig()
         self.camera_tab.loadConfig()
+        self.orient_tab.loadConfig()
         self.tool_tab.loadConfig()

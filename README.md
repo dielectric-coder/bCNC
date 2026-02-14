@@ -113,10 +113,10 @@ docking/layout system.
     python -m bCNC.qt.app
 
 **Current status:** The Qt interface covers the main workflow — connecting, jogging,
-editing G-code, probing, autoleveling, camera alignment, tool changes, CAM operations,
-and running jobs. See [USER-GUIDE.md](USER-GUIDE.md) for details.
+editing G-code, probing, autoleveling, camera alignment, orientation alignment,
+tool changes, CAM operations, web pendant, and running jobs.
+See [USER-GUIDE.md](USER-GUIDE.md) for details.
 
-Not yet ported: web pendant controls, orient tab.
 The original Tkinter UI remains fully functional and is the default.
 
 # Configuration

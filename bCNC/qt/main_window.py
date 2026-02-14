@@ -4,7 +4,9 @@
 # central canvas, and status bar.
 
 import os
+import socket
 import sys
+import webbrowser
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QAction, QKeySequence
@@ -13,6 +15,8 @@ from PySide6.QtWidgets import (
     QLabel, QProgressBar, QMenuBar, QToolBar,
     QFileDialog, QMessageBox,
 )
+
+import Pendant
 
 import Utils
 from CNC import CNC, GCode
@@ -130,6 +134,11 @@ class MainWindow(QMainWindow):
         self.probe_panel.camera_tab.set_camera_overlay(
             self.canvas_panel.camera_overlay)
 
+        # --- Wire orient tab ↔ canvas overlay + editor ---
+        self.probe_panel.orient_tab.set_orient_overlay(
+            self.canvas_panel.orient_overlay)
+        self.probe_panel.orient_tab.set_editor_panel(self.editor_panel)
+
         # --- Status bar ---
         self._setup_statusbar()
 
@@ -169,6 +178,11 @@ class MainWindow(QMainWindow):
         # Probe / autolevel signals
         self.signals.draw_probe.connect(self._on_draw_probe)
         self.signals.serial_run_end.connect(self._on_run_end)
+
+        # Orient signals
+        self.signals.orient_add_marker_mode.connect(
+            self.canvas_panel.enter_add_orient_mode)
+        self.signals.draw_orient.connect(self._on_draw_orient)
 
     # ------------------------------------------------------------------
     # Status bar
@@ -286,6 +300,16 @@ class MainWindow(QMainWindow):
         reset_action.triggered.connect(lambda: self.sender.softReset())
         machine_menu.addAction(reset_action)
 
+        machine_menu.addSeparator()
+
+        pendant_start_action = QAction("Start &Pendant", self)
+        pendant_start_action.triggered.connect(self._on_start_pendant)
+        machine_menu.addAction(pendant_start_action)
+
+        pendant_stop_action = QAction("Sto&p Pendant", self)
+        pendant_stop_action.triggered.connect(self._on_stop_pendant)
+        machine_menu.addAction(pendant_stop_action)
+
         # View menu
         view_menu = menubar.addMenu("&View")
 
@@ -331,6 +355,27 @@ class MainWindow(QMainWindow):
         paste_action.setShortcut(QKeySequence.StandardKey.Paste)
         paste_action.triggered.connect(self.editor_panel.paste)
         edit_menu.addAction(paste_action)
+
+        # Help menu
+        help_menu = menubar.addMenu("&Help")
+
+        docs_action = QAction("&Documentation", self)
+        docs_action.setShortcut(QKeySequence("F1"))
+        docs_action.triggered.connect(
+            lambda: webbrowser.open(Utils.__www__))
+        help_menu.addAction(docs_action)
+
+        help_menu.addSeparator()
+
+        updates_action = QAction("Check for &Updates...", self)
+        updates_action.triggered.connect(self._on_check_updates)
+        help_menu.addAction(updates_action)
+
+        help_menu.addSeparator()
+
+        about_action = QAction("&About bCNC", self)
+        about_action.triggered.connect(self._on_about)
+        help_menu.addAction(about_action)
 
     # ------------------------------------------------------------------
     # Toolbar
@@ -428,6 +473,9 @@ class MainWindow(QMainWindow):
             self._update_title()
             self._build_recent_menu()
             self._on_status_message(_("'{}' loaded").format(filename))
+            if filename.lower().endswith(".orient"):
+                self._on_draw_orient()
+                self.probe_panel.orient_tab.refresh()
 
     def _on_import_file(self):
         filename, _ = QFileDialog.getOpenFileName(
@@ -602,16 +650,116 @@ class MainWindow(QMainWindow):
         blocks = self.editor_panel.get_selected_blocks()
         if blocks:
             self.canvas_panel.highlight_selection(blocks)
+        # Re-draw orient markers (rebuild clears overlay items)
+        self.canvas_panel.draw_orient(self.sender.gcode.orient)
 
     def _on_draw_probe(self):
         """Draw probe overlay on canvas."""
         self.canvas_panel.draw_probe(self.sender.gcode.probe)
+
+    def _on_draw_orient(self):
+        """Draw orient markers on canvas."""
+        self.canvas_panel.draw_orient(self.sender.gcode.orient)
 
     def _on_run_end(self, msg):
         """Re-enable UI when a run (including probe scan) ends."""
         self._set_widgets_enabled(True)
         self._progress_bar.setVisible(False)
         self._buffer_bar.setVisible(False)
+
+    # ------------------------------------------------------------------
+    # Pendant
+    # ------------------------------------------------------------------
+    def _on_start_pendant(self):
+        started = Pendant.start(self.sender)
+        host = f"http://{socket.gethostname()}:{Pendant.port}"
+        if started:
+            QMessageBox.information(
+                self, _("Pendant"),
+                _("Pendant started:") + "\n" + host)
+        else:
+            ans = QMessageBox.question(
+                self, _("Pendant"),
+                _("Pendant already started:") + "\n" + host
+                + "\n" + _("Would you like to open it locally?"),
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.No)
+            if ans == QMessageBox.StandardButton.Yes:
+                webbrowser.open(host, new=2)
+
+    def _on_stop_pendant(self):
+        if Pendant.stop():
+            QMessageBox.information(
+                self, _("Pendant"), _("Pendant stopped"))
+
+    # ------------------------------------------------------------------
+    # Help menu
+    # ------------------------------------------------------------------
+    def _on_check_updates(self):
+        """Check PyPI for newer bCNC version."""
+        import json
+        import http.client as http_client
+
+        try:
+            h = http_client.HTTPSConnection("pypi.org", timeout=10)
+            h.request("GET", "/pypi/bCNC/json", None,
+                      {"User-Agent": "bCNC"})
+            r = h.getresponse()
+            if r.status == 200:
+                data = json.loads(r.read().decode("utf-8"))
+                latest = data["info"]["version"]
+                current = Utils.__version__
+
+                if self._is_newer(current, latest):
+                    ans = QMessageBox.question(
+                        self, _("Update Available"),
+                        _("A newer version is available:") + f"\n\n"
+                        f"Installed: {current}\n"
+                        f"Available: {latest}\n\n"
+                        + _("Open download page?"),
+                        QMessageBox.StandardButton.Yes
+                        | QMessageBox.StandardButton.No)
+                    if ans == QMessageBox.StandardButton.Yes:
+                        webbrowser.open("https://pypi.org/project/bCNC/")
+                else:
+                    QMessageBox.information(
+                        self, _("Up to Date"),
+                        _("You are running the latest version.")
+                        + f"\n\nVersion: {current}")
+            else:
+                QMessageBox.warning(
+                    self, _("Update Check Failed"),
+                    _("Error {} in connection").format(r.status))
+        except Exception as e:
+            QMessageBox.warning(
+                self, _("Update Check Failed"), str(e))
+
+    @staticmethod
+    def _is_newer(current, latest):
+        """Return True if latest version is newer than current."""
+        try:
+            cv = list(map(int, current.split(".")))
+            lv = list(map(int, latest.split(".")))
+            for c, l in zip(cv, lv):
+                if l > c:
+                    return True
+                if l < c:
+                    return False
+            return len(lv) > len(cv)
+        except (ValueError, AttributeError):
+            return False
+
+    def _on_about(self):
+        """Show About dialog."""
+        QMessageBox.about(
+            self,
+            _("About {} v{}").format(Utils.__prg__, Utils.__version__),
+            f"<h3>{Utils.__prg__} v{Utils.__version__}</h3>"
+            f"<p>An advanced fully featured g-code sender for GRBL.</p>"
+            f"<p><b>Author:</b> Vasilis Vlachoudis</p>"
+            f"<p><b>Website:</b> <a href='{Utils.__www__}'>"
+            f"{Utils.__www__}</a></p>"
+            f"<p><b>Email:</b> {Utils.__email__}</p>")
 
     # ------------------------------------------------------------------
     # Widget enable/disable for run mode

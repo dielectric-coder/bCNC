@@ -39,6 +39,8 @@ bCNC/
     autolevel_panel.py     # AutolevelTab (grid scan)
     camera_overlay.py      # CameraOverlay — video feed on QGraphicsScene
     camera_tab.py          # CameraTab — settings, controls, registration
+    orient_overlay.py      # OrientOverlay — marker pairs on QGraphicsScene
+    orient_tab.py          # OrientTab — marker management, solve, apply
     tools_manager.py       # ToolsManager — Tkinter-free tool/plugin loader
     tools_panel.py         # AppProxy, VariableForm, ToolsPanel
 
@@ -79,10 +81,12 @@ QApplication
        └─ self.terminal_panel            # bottom dock
 
 canvas_panel
-  └─ self.camera_overlay                 # CameraOverlay (scene items, QTimer)
+  ├─ self.camera_overlay                 # CameraOverlay (scene items, QTimer)
+  └─ self.orient_overlay                 # OrientOverlay (marker scene items)
 
 probe_panel
-  └─ self.camera_tab                     # CameraTab (wired to camera_overlay)
+  ├─ self.camera_tab                     # CameraTab (wired to camera_overlay)
+  └─ self.orient_tab                     # OrientTab (wired to orient_overlay + editor)
 ```
 
 ### Signal Flow
@@ -222,20 +226,22 @@ Special line prefixes in runLines sequences:
 | `autolevel_panel.py` | `AutolevelTab` | Grid scan config and actions |
 | `camera_overlay.py` | `CameraOverlay` | Camera video feed on QGraphicsScene |
 | `camera_tab.py` | `CameraTab` | Camera settings, controls, registration |
+| `orient_overlay.py` | `OrientOverlay` | Orient marker pairs on QGraphicsScene |
+| `orient_tab.py` | `OrientTab` | Marker management, solve, apply orient |
 | `tools_manager.py` | `ToolsManager`, `_NoOpListbox` | Tkinter-free tool/plugin loader |
 | `tools_panel.py` | `AppProxy`, `_EditorProxy`, `VariableForm`, `ToolsPanel` | Tool UI, form builder, plugin execution |
 
 ## What's Not Yet Ported
 
 ### Medium Priority
-- **Web pendant** — start/stop buttons (Pendant.py works, needs Qt integration)
 - **6-axis support** — A/B/C axis DRO and jog controls (ControlPage.py abcDROFrame)
-- **Orient tab** — orientation markers for workpiece alignment
+- **Spindle/state display** — detailed state frame with spindle speed/override controls
 
 ### Lower Priority
 - **Advanced toolbar/ribbon** — Tkinter uses CNCRibbon with configurable groups
 - **User-configurable buttons** — custom macro buttons
 - **Workspace selection** — G54..G59 quick-switch UI
+- **DRO font customization** — configurable fonts from config
 
 ### Not Needed
 - **Controllers** — work unchanged via Sender backend (GRBL0/1, SMOOTHIE, G2Core)
@@ -251,6 +257,7 @@ import py_compile
 for f in ['bCNC/qt/signals.py', 'bCNC/qt/serial_monitor.py',
           'bCNC/qt/autolevel_panel.py', 'bCNC/qt/probe_panel.py',
           'bCNC/qt/camera_overlay.py', 'bCNC/qt/camera_tab.py',
+          'bCNC/qt/orient_overlay.py', 'bCNC/qt/orient_tab.py',
           'bCNC/qt/tools_manager.py', 'bCNC/qt/tools_panel.py',
           'bCNC/qt/main_window.py', 'bCNC/qt/app.py']:
     py_compile.compile(f, doraise=True)

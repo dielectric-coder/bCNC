@@ -77,7 +77,7 @@ A tree view of G-code blocks and their lines.
 
 ## Probe Panel (Right Dock)
 
-The Probe dock has shared settings at the top and four tabs below.
+The Probe dock has shared settings at the top and five tabs below.
 
 ### Shared Probe Settings (always visible)
 - **Fast Probe Feed** — feed rate for initial fast probe pass
@@ -158,6 +158,45 @@ offset registration. Requires OpenCV (`pip install opencv-python`).
 - **Camera OFF** — stop capture and remove overlay from the canvas
 
 If OpenCV is not installed, Camera ON shows a warning message (no crash).
+
+### Orient Tab
+Marker-based workpiece alignment. Place marker pairs that map machine positions
+to G-code design positions, solve for rotation and translation, then transform
+selected G-code blocks to align with the physical workpiece.
+
+**Markers section:**
+- **Marker** spinner — navigate through markers (1-based)
+- **GCode** (X, Y) — the design position in the G-code file
+- **WPos** (X, Y) — the actual machine position of that feature
+- **Add** — enter add-marker mode: cursor changes to crosshair, click on the
+  canvas to place a marker at the clicked G-code position using the current
+  machine work position
+- **Delete** — remove the currently selected marker
+- **Clear** — remove all markers (with confirmation)
+
+**Results section:**
+- **Angle** — computed rotation angle in degrees
+- **Offset** — computed X/Y translation offset
+- **Error** — min, average, and max residual error across all markers
+- **Orient** — apply the computed rotation+translation to selected blocks
+  in the Editor (requires at least 2 markers and a valid solution)
+
+**Canvas overlay:**
+- Green crosses mark machine positions
+- Red crosses mark G-code positions
+- Blue dashed lines connect each pair
+- Red circles show error magnitude (when errors are computed)
+- Selected marker is drawn with thicker lines
+
+**Workflow:**
+1. Load a G-code file and identify reference features (holes, corners, etc.)
+2. Jog the machine to each reference feature and click **Add** on the canvas
+   at the corresponding G-code location — repeat for 2+ points
+3. The angle, offset, and error are computed automatically
+4. Select blocks in the Editor, click **Orient** to transform the G-code
+
+Orient data can be saved/loaded as `.orient` files (one marker per line:
+`xm ym x y`).
 
 ### Tool Tab
 Manual tool change management for multi-tool jobs.
@@ -250,6 +289,25 @@ documentation for the selected tool.
 - **Command entry** — type G-code or macros (RESET, HOME, RUN, etc.)
 - Up/Down arrow keys for command history
 
+## Help Menu
+
+- **Documentation** (F1) — opens the bCNC GitHub page in your web browser
+- **Check for Updates** — queries PyPI for the latest bCNC release; if a newer
+  version is available, offers to open the download page
+- **About bCNC** — shows version, author, and project links
+
+## Web Pendant
+
+The web pendant is a lightweight HTTP server that provides a mobile-friendly
+interface for controlling the CNC machine from a phone or tablet.
+
+- **Machine > Start Pendant** — starts the pendant server and shows the URL
+  (e.g. `http://hostname:8080`). If already running, offers to open it locally.
+- **Machine > Stop Pendant** — stops the pendant server
+
+The pendant port defaults to 8080 and can be configured in `[Connection]
+pendantport` in the config file.
+
 ## Running a Job
 
 1. Open a G-code file (Ctrl+O)
@@ -274,6 +332,7 @@ documentation for the selected tool.
 | Ctrl+C | Copy |
 | Ctrl+V | Paste |
 | Ctrl+0 | Fit canvas to content |
+| F1 | Open documentation |
 | Ctrl+Q | Quit |
 
 ## Configuration

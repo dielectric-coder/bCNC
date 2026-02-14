@@ -34,6 +34,13 @@ Backend decoupling and experimental Qt (PySide6) interface.
   - Camera tab: live OpenCV video overlay on canvas with cyan crosshair/circles,
     10 anchor modes (gantry-following + 9 viewport positions), camera-to-spindle
     offset registration, edge detection, frame freeze/save, coordinate switching
+  - Orient tab: marker-based workpiece alignment — place marker pairs mapping
+    machine positions to G-code design positions, least-squares solve for
+    rotation + translation, canvas overlay with green/red crosses and error
+    circles, apply orientation transform to selected blocks
+  - Help menu: Documentation link (F1), Check for Updates (queries PyPI),
+    About dialog
+  - Pendant controls: Start/Stop Pendant in Machine menu with status messages
 
 ## 0.9.16
 - Breaking changes:

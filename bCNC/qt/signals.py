@@ -61,6 +61,9 @@ class AppSignals(QObject):
     draw_requested = Signal()              # <<Draw>>
     draw_probe = Signal()                  # <<DrawProbe>>
     draw_orient = Signal()                 # <<DrawOrient>>
+    orient_add_marker_mode = Signal()      # request canvas enter add-marker mode
+    orient_marker_added = Signal(float, float, float, float)  # (xm, ym, x, y)
+    orient_marker_selected = Signal(int)   # marker index clicked on canvas
     view_changed = Signal(int)             # view index
     canvas_block_clicked = Signal(int, bool)  # (block_id, ctrl_held)
 

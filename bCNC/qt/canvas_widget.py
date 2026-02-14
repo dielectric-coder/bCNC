@@ -53,6 +53,7 @@ class CNCGraphicsView(QGraphicsView):
 
     coords_changed = Signal(float, float, float)
     canvas_block_clicked = Signal(int, bool)  # (block_id, ctrl_held)
+    orient_click = Signal(float, float)       # scene coords click in orient mode
 
     def __init__(self, scene, parent=None):
         super().__init__(scene, parent)
@@ -69,6 +70,7 @@ class CNCGraphicsView(QGraphicsView):
 
         self._panning = False
         self._pan_start = QPointF()
+        self._action_mode = None
 
     def wheelEvent(self, event: QWheelEvent):
         """Zoom in/out with mouse wheel."""
@@ -78,7 +80,22 @@ class CNCGraphicsView(QGraphicsView):
             factor = 1.0 / ZOOM_FACTOR
         self.scale(factor, factor)
 
+    def set_action_mode(self, mode):
+        """Set an action mode (e.g. 'add_orient') or None to clear."""
+        self._action_mode = mode
+        if mode:
+            self.setCursor(Qt.CursorShape.CrossCursor)
+        else:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+
     def mousePressEvent(self, event: QMouseEvent):
+        if (event.button() == Qt.MouseButton.LeftButton
+                and self._action_mode == "add_orient"):
+            scene_pos = self.mapToScene(event.position().toPoint())
+            self.orient_click.emit(scene_pos.x(), scene_pos.y())
+            self.set_action_mode(None)
+            event.accept()
+            return
         if event.button() == Qt.MouseButton.MiddleButton:
             self._panning = True
             self._pan_start = event.position()
@@ -667,6 +684,11 @@ class CanvasPanel(QWidget):
         from .camera_overlay import CameraOverlay
         self.camera_overlay = CameraOverlay(self.scene, self.view)
 
+        # Orient overlay
+        from .orient_overlay import OrientOverlay
+        self.orient_overlay = OrientOverlay(self.scene)
+        self.view.orient_click.connect(self._on_orient_click)
+
         # Wire coordinate display
         self.view.coords_changed.connect(self._on_coords)
 
@@ -706,3 +728,23 @@ class CanvasPanel(QWidget):
         self.scene.draw_probe = checked
         if not checked:
             self.scene.clear_probe_overlay()
+
+    # ------------------------------------------------------------------
+    # Orient overlay
+    # ------------------------------------------------------------------
+    def _on_orient_click(self, sx, sy):
+        """Canvas clicked in add-orient mode — unproject and emit marker."""
+        x, y, z = ViewTransform.unproject_2d_to_3d(
+            sx, sy, self.scene.view_mode, max(self.scene.zoom, 0.001))
+        xm = CNC.vars.get("wx", 0.0)
+        ym = CNC.vars.get("wy", 0.0)
+        self.signals.orient_marker_added.emit(xm, ym, x, y)
+
+    def enter_add_orient_mode(self):
+        """Put the canvas view into add-orient-marker mode."""
+        self.view.set_action_mode("add_orient")
+
+    def draw_orient(self, orient):
+        """Draw orient markers on the canvas."""
+        self.orient_overlay.draw(
+            orient, self.scene.view_mode, self.scene.zoom)
