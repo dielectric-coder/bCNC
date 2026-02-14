@@ -465,7 +465,7 @@ class MainWindow(QMainWindow):
     def _on_open_file(self):
         if self._check_modified():
             return
-        filename, _ = QFileDialog.getOpenFileName(
+        filename, _filt = QFileDialog.getOpenFileName(
             self, "Open G-Code File", "", FILETYPES_FILTER)
         if filename:
             self.sender.load(filename)
@@ -480,7 +480,7 @@ class MainWindow(QMainWindow):
                 self.probe_panel.orient_tab.refresh()
 
     def _on_import_file(self):
-        filename, _ = QFileDialog.getOpenFileName(
+        filename, _filt = QFileDialog.getOpenFileName(
             self, _("Import Gcode/DXF file"), "",
             "G-Code (*.ngc *.nc *.gcode);;"
             "DXF (*.dxf);;"
@@ -531,7 +531,7 @@ class MainWindow(QMainWindow):
             self._on_save_as()
 
     def _on_save_as(self):
-        filename, _ = QFileDialog.getSaveFileName(
+        filename, _filt = QFileDialog.getSaveFileName(
             self, "Save G-Code File", "", FILETYPES_FILTER)
         if filename:
             self.sender.save(filename)

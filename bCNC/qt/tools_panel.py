@@ -333,10 +333,10 @@ class VariableForm(QWidget):
 
         def browse():
             if save:
-                path, _ = QFileDialog.getSaveFileName(
+                path, _filt = QFileDialog.getSaveFileName(
                     self, _("Save File"), line.text())
             else:
-                path, _ = QFileDialog.getOpenFileName(
+                path, _filt = QFileDialog.getOpenFileName(
                     self, _("Open File"), line.text())
             if path:
                 line.setText(path)
