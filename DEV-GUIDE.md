@@ -219,7 +219,7 @@ Special line prefixes in runLines sequences:
 | `signals.py` | `AppSignals` | 40+ Qt signals replacing Tk virtual events |
 | `main_window.py` | `MainWindow` | Window, docks, menus, toolbar, file ops |
 | `canvas_widget.py` | `CNCGraphicsView`, `CNCScene`, `CanvasPanel` | Toolpath visualization |
-| `control_panel.py` | `DROWidget`, `ConnectionWidget`, `JogWidget`, `StateWidget`, `ControlPanel` | Machine control |
+| `control_panel.py` | `DROWidget`, `ConnectionWidget`, `JogWidget`, `StateWidget`, `MacroEditDialog`, `MacroButtonsWidget`, `ControlPanel` | Machine control, macro buttons |
 | `terminal_panel.py` | `TerminalPanel` | Serial log and command entry |
 | `serial_monitor.py` | `SerialMonitor` | QTimer bridge: Sender queues → signals |
 | `editor_model.py` | `GCodeTreeModel` | QAbstractItemModel for block/line tree |
