@@ -65,8 +65,10 @@ def main():
         Utils.addRecent(args[0])
         window.signals.file_loaded.emit(args[0])
 
-    # Initial draw
+    # Initial draw and select all blocks (highlights paths like Tkinter)
     window._on_draw()
+    if args and os.path.isfile(args[0]):
+        window.editor_panel.select_all()
     window._update_title()
 
     sys.exit(app.exec())

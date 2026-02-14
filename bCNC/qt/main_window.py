@@ -473,6 +473,7 @@ class MainWindow(QMainWindow):
             Utils.addRecent(filename)
             self.signals.file_loaded.emit(filename)
             self._on_draw()
+            self.editor_panel.select_all()
             self._update_title()
             self._build_recent_menu()
             self._on_status_message(_("'{}' loaded").format(filename))

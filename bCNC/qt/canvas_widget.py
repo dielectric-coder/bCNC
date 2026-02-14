@@ -427,8 +427,7 @@ class CNCScene(QGraphicsScene):
         if not block_ids:
             return
         bid_set = set(block_ids)
-        highlight_pen = QPen(COLORS["select"])
-        highlight_pen.setWidthF(2)
+        highlight_pen = self._make_pen(COLORS["select"], 2)
         for item, (bid, lid) in self._path_items.items():
             if bid in bid_set:
                 self._selection_state[item] = QPen(item.pen())
