@@ -114,7 +114,7 @@ docking/layout system.
 
 **Current status:** The Qt interface covers the main workflow — connecting, jogging,
 editing G-code, probing, autoleveling, camera alignment, orientation alignment,
-tool changes, CAM operations, web pendant, and running jobs.
+tool changes, CAM operations, web pendant, 6-axis (ABC) support, and running jobs.
 See [USER-GUIDE.md](USER-GUIDE.md) for details.
 
 The original Tkinter UI remains fully functional and is the default.

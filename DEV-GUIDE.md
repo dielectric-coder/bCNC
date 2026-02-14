@@ -121,7 +121,9 @@ Key patterns:
 Important keys:
 ```
 wx, wy, wz          # Work position
+wa, wb, wc          # Work position (ABC axes, 6-axis mode)
 mx, my, mz          # Machine position
+ma, mb, mc          # Machine position (ABC axes, 6-axis mode)
 state, color         # Machine state string and display color
 prbx, prby, prbz    # Last probe contact coordinates
 prbfeed, fastprbfeed # Probe feed rates
@@ -234,7 +236,6 @@ Special line prefixes in runLines sequences:
 ## What's Not Yet Ported
 
 ### Medium Priority
-- **6-axis support** — A/B/C axis DRO and jog controls (ControlPage.py abcDROFrame)
 - **Spindle/state display** — detailed state frame with spindle speed/override controls
 
 ### Lower Priority

@@ -22,7 +22,9 @@ Backend decoupling and experimental Qt (PySide6) interface.
   - Application entry point (`python -m bCNC.qt.app`)
   - Main window with dockable panels, menus, toolbar, status bar
   - Canvas: QGraphicsView-based CNC visualization with zoom/pan
-  - Control panel: DRO, connection widget, jog controls
+  - Control panel: DRO, connection widget, jog controls, per-axis zero buttons
+  - 6-axis (ABC) support: conditional DRO rows, jog buttons, and zero buttons
+    when `enable6axisopt` is enabled in config (matches Tkinter 6-axis mode)
   - Terminal: serial log with command entry and history
   - Serial monitor: QTimer-based polling replacing Tk.after() loop
   - Editor: QTreeView with block/line hierarchy, context menu, clipboard, undo/redo

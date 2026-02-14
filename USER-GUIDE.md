@@ -31,10 +31,14 @@ All docks can be dragged, resized, or closed via the View menu.
 ### DRO (Digital Readout)
 - Displays work coordinates (X, Y, Z) and machine coordinates
 - Values update in real time when connected
+- **Zero buttons** (X=0, Y=0, Z=0) — zero individual axes via G10 L20
+- When 6-axis mode is enabled (`enable6axisopt=1` in config), A/B/C axes
+  are shown with additional zero buttons (A=0, B=0, C=0)
 
 ### Jog
 - Arrow buttons for X/Y movement, Z+/Z- for vertical
 - Step size selector (0.1, 1.0, 10.0 mm)
+- When 6-axis mode is enabled, A+/A-/B+/B-/C+/C- buttons appear below the XY/Z pad
 - **Home** — send homing cycle ($H)
 - **Unlock** — clear alarm ($X)
 - **Reset** — soft reset
