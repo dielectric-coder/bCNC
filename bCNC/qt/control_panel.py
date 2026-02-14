@@ -70,6 +70,34 @@ class DROWidget(QWidget):
             layout.addWidget(m_lbl, row, 2)
             self._mach_labels[axis] = m_lbl
 
+        # ABC axes (conditional on 6-axis config)
+        if getattr(CNC, "enable6axisopt", False):
+            abc_axes = ["A", "B", "C"]
+            abc_colors = {"A": "#FF8C00", "B": "#00CED1", "C": "#DA70D6"}
+            for row, axis in enumerate(abc_axes, start=len(axes) + 1):
+                name_lbl = QLabel(axis)
+                name_lbl.setFont(DRO_FONT)
+                name_lbl.setStyleSheet(f"color: {abc_colors[axis]};")
+                name_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+                layout.addWidget(name_lbl, row, 0)
+
+                w_lbl = QLabel("0.000")
+                w_lbl.setFont(DRO_FONT)
+                w_lbl.setAlignment(Qt.AlignmentFlag.AlignRight
+                                   | Qt.AlignmentFlag.AlignVCenter)
+                w_lbl.setMinimumWidth(100)
+                layout.addWidget(w_lbl, row, 1)
+                self._work_labels[axis] = w_lbl
+
+                m_lbl = QLabel("0.000")
+                m_lbl.setFont(DRO_FONT)
+                m_lbl.setStyleSheet("color: gray;")
+                m_lbl.setAlignment(Qt.AlignmentFlag.AlignRight
+                                   | Qt.AlignmentFlag.AlignVCenter)
+                m_lbl.setMinimumWidth(100)
+                layout.addWidget(m_lbl, row, 2)
+                self._mach_labels[axis] = m_lbl
+
     def update_position(self, wx, wy, wz, mx, my, mz):
         """Update displayed coordinates."""
         fmt = "%.3f" if not CNC.inch else "%.4f"
@@ -79,6 +107,10 @@ class DROWidget(QWidget):
         self._mach_labels["X"].setText(fmt % mx)
         self._mach_labels["Y"].setText(fmt % my)
         self._mach_labels["Z"].setText(fmt % mz)
+        if getattr(CNC, "enable6axisopt", False):
+            for axis, wk, mk in [("A","wa","ma"), ("B","wb","mb"), ("C","wc","mc")]:
+                self._work_labels[axis].setText(fmt % CNC.vars[wk])
+                self._mach_labels[axis].setText(fmt % CNC.vars[mk])
 
 
 class ConnectionWidget(QWidget):
@@ -210,6 +242,23 @@ class JogWidget(QWidget):
 
         layout.addLayout(grid)
 
+        # ABC jog buttons (conditional on 6-axis config)
+        if getattr(CNC, "enable6axisopt", False):
+            abc_grid = QGridLayout()
+            abc_grid.setSpacing(2)
+            for col, axis in enumerate(["A", "B", "C"]):
+                btn_plus = QPushButton(f"{axis}+")
+                btn_plus.setMinimumSize(50, 35)
+                btn_plus.clicked.connect(
+                    lambda checked, a=axis: self._jog(a, 1))
+                abc_grid.addWidget(btn_plus, 0, col)
+                btn_minus = QPushButton(f"{axis}-")
+                btn_minus.setMinimumSize(50, 35)
+                btn_minus.clicked.connect(
+                    lambda checked, a=axis: self._jog(a, -1))
+                abc_grid.addWidget(btn_minus, 1, col)
+            layout.addLayout(abc_grid)
+
         # Action buttons
         action_layout = QHBoxLayout()
         for label, callback in [
@@ -264,6 +313,24 @@ class ControlPanel(QWidget):
         dro_layout.setContentsMargins(2, 2, 2, 2)
         self.dro = DROWidget()
         dro_layout.addWidget(self.dro)
+
+        # Zero-axis buttons
+        zero_layout = QHBoxLayout()
+        for axis in ["X", "Y", "Z"]:
+            btn = QPushButton(f"{axis}=0")
+            btn.setMaximumWidth(50)
+            btn.clicked.connect(
+                lambda checked, a=axis: self._zero_axis(a))
+            zero_layout.addWidget(btn)
+        if getattr(CNC, "enable6axisopt", False):
+            for axis in ["A", "B", "C"]:
+                btn = QPushButton(f"{axis}=0")
+                btn.setMaximumWidth(50)
+                btn.clicked.connect(
+                    lambda checked, a=axis: self._zero_axis(a))
+                zero_layout.addWidget(btn)
+        dro_layout.addLayout(zero_layout)
+
         layout.addWidget(dro_group)
 
         # Jog group
@@ -293,3 +360,9 @@ class ControlPanel(QWidget):
         # Wire signals
         signals.state_changed.connect(self.connection.update_state)
         signals.position_updated.connect(self.dro.update_position)
+
+    def _zero_axis(self, axis):
+        """Zero a single axis via G10 L20."""
+        args = {a: None for a in "xyzabc"}
+        args[axis.lower()] = "0"
+        self.sender.mcontrol._wcsSet(**args)

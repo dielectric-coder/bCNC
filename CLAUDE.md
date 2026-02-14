@@ -137,7 +137,6 @@ python -m bCNC.qt.app
 
 ## Remaining Gaps (Tkinter → Qt)
 
-- **6-axis support** — ABC axis DRO and jog controls (conditional on `CNC.enable6axisopt`)
 - **Spindle/state display** — detailed state frame with spindle speed/override
 - **Workspace selection** — G54..G59 quick-switch UI
 - **User-configurable macro buttons**
