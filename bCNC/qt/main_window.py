@@ -842,4 +842,5 @@ class MainWindow(QMainWindow):
         self.sender.quit()
         if self.sender.serial is not None:
             self.sender.close()
+        Utils.saveConfiguration()
         event.accept()
