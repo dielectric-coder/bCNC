@@ -31,6 +31,9 @@ Backend decoupling and experimental Qt (PySide6) interface.
   - Tools panel: full plugin system, tool database (Material/EndMill/Stock),
     CAM operations (Cut/Profile/Pocket/Drill/Tabs), and all 42+ external plugins
     with dynamic form builder and AppProxy for plugin compatibility
+  - Camera tab: live OpenCV video overlay on canvas with cyan crosshair/circles,
+    10 anchor modes (gantry-following + 9 viewport positions), camera-to-spindle
+    offset registration, edge detection, frame freeze/save, coordinate switching
 
 ## 0.9.16
 - Breaking changes:

@@ -126,7 +126,38 @@ Grid-based Z surface scanning for PCB milling and similar work.
 Status label shows scan progress (e.g. "15 / 25 points").
 
 ### Camera Tab
-Placeholder — not yet implemented.
+Live camera overlay for visual alignment, edge finding, and camera-to-spindle
+offset registration. Requires OpenCV (`pip install opencv-python`).
+
+**Camera Settings:**
+- **Location** — where the camera feed appears on the canvas:
+  - *Gantry* — follows the gantry position (with optional offset)
+  - *Top-Left, Top, Top-Right, Left, Center, Right, Bottom-Left, Bottom,
+    Bottom-Right* — fixed viewport anchor positions
+- **Rotation** — rotate the camera image (degrees)
+- **Haircross** — X/Y pixel offset for centering the crosshair on the image
+- **Scale** — pixels-per-unit scaling factor for the camera feed
+- **Crosshair** — diameter of the inner crosshair circle (machine units);
+  **Get** reads the active endmill diameter
+- **Offset** — DX, DY, Z offset from camera to spindle (machine units)
+
+**Registration (camera-to-spindle offset):**
+1. Jog the spindle to a visible target point, click **1. Spindle**
+2. Jog until the camera crosshair is on the same point, click **2. Camera**
+3. The DX/DY offset fields are computed automatically
+
+**Controls:**
+- **Switch To Camera** — toggles coordinate system between spindle and camera
+  position (sends G92/G92.1 to shift work coordinates by the offset)
+- **Edge** — enable Canny edge detection overlay on the video feed
+- **Freeze** — blend-freeze the current frame as a semi-transparent overlay
+- **Save** — save the current camera frame as `cameraNN.png`
+
+**On/Off:**
+- **Camera ON** — start live video capture and display on the canvas
+- **Camera OFF** — stop capture and remove overlay from the canvas
+
+If OpenCV is not installed, Camera ON shows a warning message (no crash).
 
 ### Tool Tab
 Manual tool change management for multi-tool jobs.
