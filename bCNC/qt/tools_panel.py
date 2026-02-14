@@ -210,12 +210,9 @@ class VariableForm(QWidget):
         self._tool = tool
         self._tools_manager = tools_manager
 
-        # Clear existing widgets
-        while self._layout.count():
-            item = self._layout.takeAt(0)
-            w = item.widget()
-            if w:
-                w.deleteLater()
+        # Clear existing rows (removeRow removes both label and field)
+        while self._layout.rowCount():
+            self._layout.removeRow(0)
         self._widgets.clear()
 
         for var in tool.variables:
