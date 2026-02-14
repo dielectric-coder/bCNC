@@ -647,40 +647,20 @@ class CanvasPanel(QWidget):
 
         toolbar.addSeparator()
 
-        self.cb_grid = QCheckBox("Grid")
-        self.cb_grid.setChecked(True)
-        self.cb_grid.toggled.connect(
-            lambda v: setattr(self.scene, 'draw_grid', v))
-        toolbar.addWidget(self.cb_grid)
-
-        self.cb_axes = QCheckBox("Axes")
-        self.cb_axes.setChecked(True)
-        self.cb_axes.toggled.connect(
-            lambda v: setattr(self.scene, 'draw_axes', v))
-        toolbar.addWidget(self.cb_axes)
-
-        self.cb_margin = QCheckBox("Margin")
-        self.cb_margin.setChecked(True)
-        self.cb_margin.toggled.connect(
-            lambda v: setattr(self.scene, 'draw_margin', v))
-        toolbar.addWidget(self.cb_margin)
-
-        self.cb_workarea = QCheckBox("Workarea")
-        self.cb_workarea.setChecked(True)
-        self.cb_workarea.toggled.connect(
-            lambda v: setattr(self.scene, 'draw_workarea', v))
-        toolbar.addWidget(self.cb_workarea)
-
-        self.cb_paths = QCheckBox("Paths")
-        self.cb_paths.setChecked(True)
-        self.cb_paths.toggled.connect(
-            lambda v: setattr(self.scene, 'draw_paths', v))
-        toolbar.addWidget(self.cb_paths)
-
-        self.cb_probe = QCheckBox("Probe")
-        self.cb_probe.setChecked(True)
-        self.cb_probe.toggled.connect(self._on_probe_toggled)
-        toolbar.addWidget(self.cb_probe)
+        for attr, label in [
+            ("draw_grid", "Grid"),
+            ("draw_axes", "Axes"),
+            ("draw_margin", "Margin"),
+            ("draw_workarea", "Workarea"),
+            ("draw_paths", "Paths"),
+            ("draw_rapid", "Rapid"),
+            ("draw_probe", "Probe"),
+        ]:
+            cb = QCheckBox(label)
+            cb.setChecked(True)
+            cb.toggled.connect(self._make_toggle(attr))
+            toolbar.addWidget(cb)
+            setattr(self, "cb_" + attr.replace("draw_", ""), cb)
 
         # Layout
         layout = QVBoxLayout(self)
@@ -732,10 +712,12 @@ class CanvasPanel(QWidget):
         """Highlight paths for the given block ids on the canvas."""
         self.scene.highlight_selection(block_ids)
 
-    def _on_probe_toggled(self, checked):
-        self.scene.draw_probe = checked
-        if not checked:
-            self.scene.clear_probe_overlay()
+    def _make_toggle(self, attr):
+        """Return a slot that sets a scene draw flag and triggers redraw."""
+        def _toggle(checked):
+            setattr(self.scene, attr, checked)
+            self.signals.draw_requested.emit()
+        return _toggle
 
     # ------------------------------------------------------------------
     # Orient overlay

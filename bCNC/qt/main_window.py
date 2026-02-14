@@ -160,6 +160,7 @@ class MainWindow(QMainWindow):
         self.signals.run_progress.connect(self._on_run_progress)
         self.signals.buffer_fill.connect(self._on_buffer_fill)
         self.signals.draw_requested.connect(self._on_draw)
+        self.signals.view_changed.connect(self._on_draw)
         self.signals.position_updated.connect(
             self.canvas_panel.update_gantry)
 
