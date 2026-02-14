@@ -1,76 +1,33 @@
-# Qt Autolevel Panel - port of ProbePage.py ProbeCommonFrame + AutolevelFrame
+# Qt Autolevel Tab — grid scan configuration and actions
 #
-# Single panel combining probe settings, grid configuration,
-# and autolevel action buttons.
+# Lives inside ProbePanel's QTabWidget.  Probe settings (feed, TLO, cmd)
+# are managed by ProbeCommonWidget and accessed via set_probe_common().
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+    QWidget, QVBoxLayout, QGridLayout,
     QGroupBox, QLabel, QPushButton, QDoubleSpinBox,
-    QSpinBox, QComboBox, QMessageBox,
+    QSpinBox, QMessageBox,
 )
 
 import Utils
 from CNC import CNC
 
 
-PROBE_CMD = [
-    "G38.2 stop on contact else error",
-    "G38.3 stop on contact",
-    "G38.4 stop on loss contact else error",
-    "G38.5 stop on loss contact",
-]
+class AutolevelTab(QWidget):
+    """Autolevel grid configuration and action buttons.
 
-
-class AutolevelPanel(QWidget):
-    """Autolevel configuration and control panel.
-
-    Combines probe settings (feed, TLO, command), grid configuration
-    (X/Y min/max/N, Z min/max), and action buttons (scan, autolevel, etc.).
+    Probe feed/cmd settings are provided externally via set_probe_common().
     """
 
     def __init__(self, sender, signals, parent=None):
         super().__init__(parent)
         self.sender = sender
         self.signals = signals
+        self._probe_common = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
-
-        # --- Probe Settings group ---
-        probe_group = QGroupBox("Probe Settings")
-        pg = QGridLayout(probe_group)
-
-        pg.addWidget(QLabel("Fast Probe Feed:"), 0, 0)
-        self.fast_probe_feed = QDoubleSpinBox()
-        self.fast_probe_feed.setRange(0.1, 10000)
-        self.fast_probe_feed.setDecimals(1)
-        pg.addWidget(self.fast_probe_feed, 0, 1)
-
-        pg.addWidget(QLabel("Probe Feed:"), 1, 0)
-        self.probe_feed = QDoubleSpinBox()
-        self.probe_feed.setRange(0.1, 10000)
-        self.probe_feed.setDecimals(1)
-        pg.addWidget(self.probe_feed, 1, 1)
-
-        pg.addWidget(QLabel("TLO:"), 2, 0)
-        tlo_row = QHBoxLayout()
-        self.tlo = QDoubleSpinBox()
-        self.tlo.setRange(-1000, 1000)
-        self.tlo.setDecimals(3)
-        tlo_row.addWidget(self.tlo)
-        self.tlo_set_btn = QPushButton("Set")
-        self.tlo_set_btn.clicked.connect(self._on_tlo_set)
-        tlo_row.addWidget(self.tlo_set_btn)
-        pg.addLayout(tlo_row, 2, 1)
-
-        pg.addWidget(QLabel("Probe Command:"), 3, 0)
-        self.probe_cmd = QComboBox()
-        self.probe_cmd.addItems(PROBE_CMD)
-        pg.addWidget(self.probe_cmd, 3, 1)
-
-        pg.setColumnStretch(1, 1)
-        layout.addWidget(probe_group)
 
         # --- Grid Configuration group ---
         grid_group = QGroupBox("Grid Configuration")
@@ -189,23 +146,14 @@ class AutolevelPanel(QWidget):
 
         self.loadConfig()
 
+    def set_probe_common(self, probe_common):
+        """Store reference to the shared ProbeCommonWidget."""
+        self._probe_common = probe_common
+
     # ------------------------------------------------------------------
     # Config persistence (matches Tkinter [Probe] section keys)
     # ------------------------------------------------------------------
     def loadConfig(self):
-        self.fast_probe_feed.setValue(
-            Utils.getFloat("Probe", "fastfeed", 100.0))
-        self.probe_feed.setValue(
-            Utils.getFloat("Probe", "feed", 10.0))
-        self.tlo.setValue(
-            Utils.getFloat("Probe", "tlo", 0.0))
-
-        cmd = Utils.getStr("Probe", "cmd")
-        for i, p in enumerate(PROBE_CMD):
-            if p.split()[0] == cmd:
-                self.probe_cmd.setCurrentIndex(i)
-                break
-
         self.x_min.setValue(Utils.getFloat("Probe", "xmin", 0.0))
         self.x_max.setValue(Utils.getFloat("Probe", "xmax", 10.0))
         self.y_min.setValue(Utils.getFloat("Probe", "ymin", 0.0))
@@ -218,11 +166,6 @@ class AutolevelPanel(QWidget):
         self._update_steps()
 
     def saveConfig(self):
-        Utils.setFloat("Probe", "fastfeed", self.fast_probe_feed.value())
-        Utils.setFloat("Probe", "feed", self.probe_feed.value())
-        Utils.setFloat("Probe", "tlo", self.tlo.value())
-        Utils.setFloat("Probe", "cmd",
-                        self.probe_cmd.currentText().split()[0])
         Utils.setFloat("Probe", "xmin", self.x_min.value())
         Utils.setFloat("Probe", "xmax", self.x_max.value())
         Utils.setInt("Probe", "xn", self.x_n.value())
@@ -236,15 +179,15 @@ class AutolevelPanel(QWidget):
     # Push UI values into CNC.vars and Probe object
     # ------------------------------------------------------------------
     def _apply_to_probe(self):
-        """Push current UI values into CNC.vars and the Probe object.
+        """Push grid values into the Probe object, and delegate
+        feed/cmd to ProbeCommonWidget.
 
         Returns an error string or None on success.
         """
-        probe = self.sender.gcode.probe
+        if self._probe_common:
+            self._probe_common.apply_to_cnc()
 
-        CNC.vars["fastprbfeed"] = self.fast_probe_feed.value()
-        CNC.vars["prbfeed"] = self.probe_feed.value()
-        CNC.vars["prbcmd"] = self.probe_cmd.currentText().split()[0]
+        probe = self.sender.gcode.probe
 
         try:
             probe.xmin = self.x_min.value()
@@ -300,14 +243,6 @@ class AutolevelPanel(QWidget):
     # ------------------------------------------------------------------
     def _on_grid_changed(self):
         self._update_steps()
-
-    def _on_tlo_set(self):
-        try:
-            CNC.vars["TLO"] = self.tlo.value()
-            cmd = f"G43.1Z{self.tlo.value()}"
-            self.sender.sendGCode(cmd)
-        except Exception:
-            pass
 
     def _on_get_margins(self):
         self.x_min.setValue(CNC.vars.get("xmin", 0.0))

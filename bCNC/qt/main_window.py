@@ -22,7 +22,7 @@ from .canvas_widget import CanvasPanel
 from .control_panel import ControlPanel
 from .terminal_panel import TerminalPanel
 from .serial_monitor import SerialMonitor
-from .autolevel_panel import AutolevelPanel
+from .probe_panel import ProbePanel
 from .editor_panel import EditorPanel
 
 
@@ -86,17 +86,17 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea,
                            self.terminal_dock)
 
-        # --- Dock: Autolevel panel (right) ---
-        self.autolevel_dock = QDockWidget("Autolevel", self)
-        self.autolevel_dock.setAllowedAreas(
+        # --- Dock: Probe panel (right) ---
+        self.probe_dock = QDockWidget("Probe", self)
+        self.probe_dock.setAllowedAreas(
             Qt.DockWidgetArea.LeftDockWidgetArea
             | Qt.DockWidgetArea.RightDockWidgetArea)
-        self.autolevel_panel = AutolevelPanel(sender, self.signals)
-        self.autolevel_dock.setWidget(self.autolevel_panel)
+        self.probe_panel = ProbePanel(sender, self.signals)
+        self.probe_dock.setWidget(self.probe_panel)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea,
-                           self.autolevel_dock)
+                           self.probe_dock)
 
-        # --- Dock: Editor panel (right, tabified with autolevel) ---
+        # --- Dock: Editor panel (right, tabified with probe) ---
         self.editor_dock = QDockWidget("Editor", self)
         self.editor_dock.setAllowedAreas(
             Qt.DockWidgetArea.LeftDockWidgetArea
@@ -105,7 +105,7 @@ class MainWindow(QMainWindow):
         self.editor_dock.setWidget(self.editor_panel)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea,
                            self.editor_dock)
-        self.tabifyDockWidget(self.autolevel_dock, self.editor_dock)
+        self.tabifyDockWidget(self.probe_dock, self.editor_dock)
         self.editor_dock.raise_()
 
         # --- Status bar ---
@@ -269,7 +269,7 @@ class MainWindow(QMainWindow):
 
         view_menu.addAction(self.control_dock.toggleViewAction())
         view_menu.addAction(self.terminal_dock.toggleViewAction())
-        view_menu.addAction(self.autolevel_dock.toggleViewAction())
+        view_menu.addAction(self.probe_dock.toggleViewAction())
         view_menu.addAction(self.editor_dock.toggleViewAction())
 
         view_menu.addSeparator()
@@ -595,7 +595,7 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     def _set_widgets_enabled(self, enabled):
         self.control_panel.setEnabled(enabled)
-        self.autolevel_panel.setEnabled(enabled)
+        self.probe_panel.setEnabled(enabled)
         self.editor_panel.setEnabled(enabled)
         self.menuBar().setEnabled(enabled)
 
@@ -607,7 +607,7 @@ class MainWindow(QMainWindow):
         if self._check_modified():
             event.ignore()
             return
-        self.autolevel_panel.saveConfig()
+        self.probe_panel.saveConfig()
         self.serial_monitor.stop()
         self.sender.quit()
         if self.sender.serial is not None:

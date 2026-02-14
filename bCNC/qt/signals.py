@@ -42,6 +42,7 @@ class AppSignals(QObject):
     )
     g_state_updated = Signal()             # $G response parsed
     probe_updated = Signal()               # probe data received
+    generic_update = Signal(str)            # %update <name> dispatch
 
     # Serial messages (from log queue)
     serial_buffer = Signal(str)            # MSG_BUFFER

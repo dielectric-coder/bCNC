@@ -155,8 +155,9 @@ class SerialMonitor:
 
     def _update_generic(self):
         if self.sender._update:
-            # Emit a generic update — panels listen for specifics
+            update_name = self.sender._update
             self.sender._update = None
+            self.signals.generic_update.emit(update_name)
 
     # ------------------------------------------------------------------
     # Run progress
