@@ -44,6 +44,21 @@ So please keep that in mind and make sure it's installed in case of problems.
 If you run the `python -m bCNC` command in root directory of this git repository it will launch the git version.
 Every developer should always use this to launch bCNC to ensure that his/her code will work after packaging.
 
+## Development setup (venv)
+
+If your system does not allow global pip installs (e.g. Arch/Manjaro), use a
+virtual environment:
+
+    python -m venv .venv
+    source .venv/bin/activate    # Linux/macOS
+    .venv\Scripts\activate       # Windows
+    pip install -r requirements.txt
+
+Then launch either UI from the repo root:
+
+    python -m bCNC              # Tkinter (original)
+    python -m bCNC.qt.app       # Qt (experimental, requires PySide6)
+
 Note that on Windows XP you have to use `pyserial==3.0.1` or older as newer version do not work on XP.
 
 PyPI project: https://pypi.org/project/bCNC/
@@ -106,7 +121,8 @@ bCNC includes an experimental Qt (PySide6) interface alongside the original Tkin
 The Qt version provides the same core functionality with a more modern look and improved
 docking/layout system.
 
-**Requirements:** PySide6 (`pip install PySide6`)
+**Requirements:** PySide6 (`pip install PySide6`), or use a venv (see
+[Development setup](#development-setup-venv) above).
 
 **Launch:**
 

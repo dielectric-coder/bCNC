@@ -2,6 +2,22 @@
 
 Architecture, conventions, and how to extend the Qt interface.
 
+## Getting Started
+
+```bash
+git clone https://github.com/vlachoudis/bCNC.git
+cd bCNC
+python -m venv .venv
+source .venv/bin/activate        # Linux/macOS (.venv\Scripts\activate on Windows)
+pip install -r requirements.txt  # core deps (pyserial, numpy, etc.)
+pip install PySide6              # Qt toolkit
+
+python -m bCNC                   # launch Tkinter UI
+python -m bCNC.qt.app            # launch Qt UI
+```
+
+Both commands should be run from the repository root.
+
 ## Repository Structure
 
 ```

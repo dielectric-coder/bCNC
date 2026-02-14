@@ -397,7 +397,7 @@ class SerialFrame(CNCRibbon.PageLabelFrame):
                 for j in i:
                     comport += j + "\t"
                 print(comport)
-            for hw in i[2].split(" "):
+            for hw in (i[2] or "").split(" "):
                 hwgrep += ["hwgrep://" + hw + "\t" + i[1]]
 
         # Populate combobox

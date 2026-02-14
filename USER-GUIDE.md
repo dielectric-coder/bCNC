@@ -5,8 +5,17 @@ It provides the same core CNC workflow with dockable panels and a tabbed layout.
 
 ## Launching
 
-    pip install PySide6
-    python -m bCNC.qt.app
+**Quick start (venv recommended):**
+
+    python -m venv .venv
+    source .venv/bin/activate        # Linux/macOS (.venv\Scripts\activate on Windows)
+    pip install -r requirements.txt  # core dependencies
+    pip install PySide6              # Qt toolkit
+
+    python -m bCNC.qt.app            # launch Qt interface
+    python -m bCNC                   # launch Tkinter interface (original)
+
+Both commands should be run from the repository root.
 
 The Qt app reads the same `~/.bCNC` configuration file as the Tkinter version.
 Settings are shared — you can switch between UIs without losing configuration.
